@@ -1,11 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 function App() {
+  // Animation states
+  const [showIntro, setShowIntro] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
+  const [isEmojiFlagHovered, setIsEmojiFlagHovered] = useState(false);
+
+  // Trigger intro animation on mount
+  useEffect(() => {
+    setShowIntro(true);
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#0E1011] text-[#DEDEDE]">
       {/* Navbar */}
-      <div className="sticky top-4 z-50 flex justify-center px-4">
-        <nav className="w-full max-w-[960px] flex items-center justify-between bg-black rounded-[20px] px-8 py-8">
+      <div className="sticky top-5 z-50 flex justify-center px-4">
+        <nav className="w-full max-w-[860px] flex items-center justify-between bg-black rounded-[20px] px-5 py-4">
           <div className="text-lg font-medium">Stefan Dukic</div>
 
           <div className="flex items-center gap-6 text-[rgba(255,255,255,0.3)]">
@@ -63,7 +73,107 @@ function App() {
 
       {/* Content container */}
       <div className="max-w-[960px] mx-auto px-4">
-        {/* Placeholder for other sections */}
+        {/* Intro Section */}
+        <section className="py-20">
+          <div className="flex items-center justify-between">
+            <div
+              className={`max-w-[500px] transition-opacity duration-1000 ${
+                showIntro ? "opacity-100" : "opacity-0"
+              }`}
+            >
+              <h1 className="text-5xl font-bold mb-4">
+                I'm Stefan
+                <span className="ml-2 inline-flex items-center">
+                  <div className="relative inline-block group">
+                    {/* Rotating container for the peace emoji and the swiss flag */}
+                    <div
+                      className={`
+                        ${
+                          hasInteracted && isEmojiFlagHovered
+                            ? "animate-rotate-wiggle-45"
+                            : ""
+                        } 
+                        ${
+                          hasInteracted && isEmojiFlagHovered === false
+                            ? "animate-rotate-unwiggle-45"
+                            : ""
+                        }
+                        [animation-duration:500ms]
+                      `}
+                      onMouseEnter={() => {
+                        setIsEmojiFlagHovered(true);
+                        setHasInteracted(true);
+                      }}
+                      onMouseLeave={() => setIsEmojiFlagHovered(false)}
+                    >
+                      {/* Peace Emoji: rotates 90° and fades out when the container is hovered */}
+                      <span
+                        className={`
+                        block text-[42px] transition-all duration-200 transform 
+                        ${isEmojiFlagHovered ? "opacity-0" : "opacity-100"}
+                      `}
+                      >
+                        ✌️
+                      </span>
+                      {/* Swiss Flag: fades in when the container is hovered */}
+                      <span
+                        className={`
+                        absolute inset-0 flex items-center justify-center text-[42px] 
+                        pointer-events-none transition-opacity rotate-315 duration-200
+                        ${isEmojiFlagHovered ? "opacity-100" : "opacity-0"}
+                      `}
+                      >
+                        🇷🇸
+                      </span>
+                    </div>
+                  </div>
+                </span>
+              </h1>
+
+              <p className="text-lg text-[rgba(255,255,255,0.7)] leading-relaxed">
+                Driven by a desire to build a lasting legacy, I continuously
+                refine both my full-stack and AI skills through a dedicated
+                practice–feedback–learn loop{" "}
+                <svg
+                  className="w-5 h-5 inline-block animate-spin-slow"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2"
+                    strokeLinecap="round"
+                    strokeOpacity="0.2"
+                  />
+                </svg>
+                . Today, I develop robust apps that pave the way for innovative
+                ventures.
+              </p>
+            </div>
+
+            <div
+              className={`transition-all duration-1000 ${
+                showIntro
+                  ? "opacity-100 translate-x-0"
+                  : "opacity-0 translate-x-10"
+              }`}
+            >
+              <div className="relative w-[280px] h-[280px]">
+                <img
+                  src="/photo.jpeg"
+                  alt="Photo of Stefan"
+                  className="w-full h-full object-cover rounded-3xl"
+                />
+                <div className="absolute inset-0 rounded-3xl shadow-inner pointer-events-none"></div>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   );

@@ -1,1 +1,72 @@
 @import "tailwindcss";
+
+@theme {
+  --animate-vanish: vanish 1s linear forwards;
+
+  @keyframes vanish {
+    0%,
+    99% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  --animate-spin-slow: spin-slow 3s linear infinite;
+
+  @keyframes spin-slow {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  --animate-wiggle: wiggle 1s ease-in-out infinite;
+  @keyframes wiggle {
+    0%,
+    100% {
+      transform: rotate(-9deg);
+    }
+    50% {
+      transform: rotate(9deg);
+    }
+  }
+
+  --animate-rotate-wiggle-45: rotate-wiggle-45 1.5s forwards;
+  @keyframes rotate-wiggle-45 {
+    0% {
+      transform: rotate(0deg);
+    }
+    40% {
+      /* Overshoot: 45° + (15°/2) = 52.5° */
+      transform: rotate(52.5deg);
+    }
+    70% {
+      /* Undershoot: 45° - (5°/2) = 42.5° */
+      transform: rotate(42.5deg);
+    }
+    100% {
+      /* settle */
+      transform: rotate(45deg);
+    }
+  }
+
+  --animate-rotate-unwiggle-45: rotate-unwiggle-45 1.5s forwards;
+
+  @keyframes rotate-unwiggle-45 {
+    0% {
+      transform: rotate(45deg);
+    }
+    40% {
+      /* overshoot 0 - (15°/2) = -7.5° */
+      transform: rotate(-7.5deg);
+    }
+    70% {
+      /* undershoot 0 + (5°/2) = 2.5 */
+      transform: rotate(2.5deg);
+    }
+    100% {
+      transform: rotate(0deg);
+    }
+  }
+}
