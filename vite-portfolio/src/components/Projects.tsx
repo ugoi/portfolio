@@ -88,36 +88,28 @@ export function Projects() {
     if (!scrollContainerRef.current) return;
 
     const container = scrollContainerRef.current;
-    const scrollAmount = 800; // Base scroll amount
+    const maxScroll = container.scrollWidth - container.clientWidth;
 
     if (direction === "left") {
-      // When scrolling left, don't scroll more than the current scroll position
-      const targetScroll = Math.max(0, container.scrollLeft - scrollAmount);
       container.scrollTo({
-        left: targetScroll,
+        left: 0,
         behavior: "smooth",
       });
     } else {
-      // When scrolling right, don't scroll beyond the maximum scroll position
-      const maxScroll = container.scrollWidth - container.clientWidth;
-      const targetScroll = Math.min(
-        maxScroll,
-        container.scrollLeft + scrollAmount
-      );
       container.scrollTo({
-        left: targetScroll,
+        left: maxScroll,
         behavior: "smooth",
       });
     }
   };
 
   return (
-    <section className="py-20 relative">
+    <section className="md:py-12 relative">
       {/* Scroll Arrows */}
       {showLeftArrow && (
         <button
           onClick={() => scroll("left")}
-          className="absolute left-12 top-1/2 z-10 bg-[#0E1011]/80 rounded-full p-4 backdrop-blur-sm"
+          className="hidden md:block absolute left-[7%] top-1/2 z-10 bg-[#0E1011]/80 rounded-full p-4 backdrop-blur-sm"
         >
           <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
             <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
@@ -128,7 +120,7 @@ export function Projects() {
       {showRightArrow && (
         <button
           onClick={() => scroll("right")}
-          className="absolute right-12 top-1/2 z-10 bg-[#0E1011]/80 rounded-full p-4 backdrop-blur-sm"
+          className="hidden md:block absolute right-[7%] top-1/2 z-10 bg-[#0E1011]/80 rounded-full p-4 backdrop-blur-sm"
         >
           <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
             <path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z" />
@@ -137,54 +129,60 @@ export function Projects() {
       )}
 
       {/* Projects Container */}
-      <div
-        ref={scrollContainerRef}
-        onScroll={handleScroll}
-        className="flex overflow-x-auto py-22 hide-scrollbar
-                  bg-[rgb(15,15,16)] rounded-[60px] border border-white/[0.08] mx-6 relative"
-      >
-        <div className="shrink-0 w-[88px]" aria-hidden="true"></div>
-        {projects.map((project, index) => (
+      <div className="max-w-[1104px] mx-auto">
+        <div
+          ref={scrollContainerRef}
+          onScroll={handleScroll}
+          className="flex overflow-x-auto hidescrollbar
+                    md:py-22 md:bg-[rgb(18,18,18)] md:rounded-[60px] md:border md:border-white/[0.08] 
+                    md:shadow-[0_0_40px_rgb(10,10,10),0_0_80px_rgb(5,5,5),0_0_120px_rgb(0,0,0)] relative"
+        >
           <div
-            key={project.id}
-            onClick={() => setSelectedProject(project)}
-            className={`min-w-[266px] h-[575px] relative rounded-[20px] overflow-hidden
-                     transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl
-                     cursor-pointer active:scale-95 my-2 ${
-                       index !== 0 ? "ml-12" : ""
-                     }`}
-          >
-            <video
-              autoPlay
-              muted
-              loop
-              playsInline
-              poster={project.thumbnailUrl}
-              className="w-full h-full object-cover"
+            className="shrink-0 w-[30px] md:w-[88px]"
+            aria-hidden="true"
+          ></div>
+          {projects.map((project, index) => (
+            <div
+              key={project.id}
+              onClick={() => setSelectedProject(project)}
+              className={`min-w-[220px] md:min-w-[266px] h-[450px] md:h-[575px] relative rounded-[20px] overflow-hidden
+                       transform transition-all duration-300 hover:-translate-y-4 hover:scale-105 hover:shadow-2xl
+                       cursor-pointer active:scale-95 my-2 ${
+                         index !== 0 ? "ml-4 md:ml-12" : ""
+                       }`}
             >
-              <source src={project.videoUrl} type="video/mp4" />
-            </video>
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent">
-              <div className="absolute bottom-6 left-5">
-                <h3 className="text-xl font-bold mb-1.5">{project.title}</h3>
-                <p className="text-sm text-gray-300">
-                  {project.shortDescription}
-                </p>
+              <video
+                autoPlay
+                muted
+                loop
+                playsInline
+                poster={project.thumbnailUrl}
+                className="w-full h-full object-cover"
+              >
+                <source src={project.videoUrl} type="video/mp4" />
+              </video>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent">
+                <div className="absolute bottom-6 left-5">
+                  <h3 className="text-xl font-bold mb-1.5">{project.title}</h3>
+                  <p className="text-sm text-gray-300">
+                    {project.shortDescription}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-        <div className="shrink-0 w-[88px]" aria-hidden="true"></div>
+          ))}
+          <div className="shrink-0 w-[88px]" aria-hidden="true"></div>
+        </div>
       </div>
 
       {/* Project Modal */}
       {selectedProject && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 animate-fade-in"
           onClick={() => setSelectedProject(null)}
         >
           <div
-            className="bg-[#0E1011] rounded-2xl max-w-3xl w-full p-6 transform transition-all"
+            className="bg-[#0E1011] rounded-2xl max-w-3xl w-full p-6 animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="aspect-video rounded-xl overflow-hidden mb-6">

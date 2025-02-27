@@ -13,18 +13,18 @@ function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[rgb(14,16,17)] text-[#DEDEDE]">
+    <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text-primary)]">
       {/* Navbar */}
-      <div className="sticky top-8 z-50 flex justify-center px-4">
-        <nav className="w-full max-w-[960px] flex items-center justify-between bg-[#0E1011]/80 backdrop-blur-sm rounded-[20px] px-6 py-6">
-          <div className="font-['Inter',sans-serif] text-[14px] tracking-[2px] leading-[160%] text-[rgba(255,255,255,0.3)] uppercase hover:text-[#DEDEDE] transition-colors">
+      <div className="sticky top-0 z-50 flex justify-center px-3 pt-3 md:px-0 md:pt-8">
+        <nav className="w-full max-w-[960px] flex items-center justify-between bg-[var(--color-navbar)] backdrop-blur-sm rounded-[var(--radius-navbar)] px-[var(--spacing-navbar)] h-[var(--height-navbar)]">
+          <div className="font-['Inter',sans-serif] text-[12px] md:text-[14px] tracking-[2px] leading-[160%] text-[var(--color-text-muted)] uppercase hover:text-[var(--color-hover)] transition-colors">
             stefan dukic
           </div>
 
-          <div className="flex items-center gap-6 text-[rgba(255,255,255,0.3)]">
+          <div className="flex items-center gap-[var(--spacing-icon-gap)] text-[var(--color-text-muted)]">
             <a
               href="/resume.pdf"
-              className="hover:text-[#DEDEDE] transition-colors"
+              className="hover:text-[var(--color-hover)] transition-colors"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -44,7 +44,7 @@ function App() {
             </a>
             <a
               href="https://www.linkedin.com/in/stefan-dukic-68682b20b/"
-              className="hover:text-[#DEDEDE] transition-colors"
+              className="hover:text-[var(--color-hover)] transition-colors"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -54,7 +54,7 @@ function App() {
             </a>
             <a
               href="https://github.com/ugoi"
-              className="hover:text-[#DEDEDE] transition-colors"
+              className="hover:text-[var(--color-hover)] transition-colors"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -64,7 +64,7 @@ function App() {
             </a>
             <a
               href="mailto:codecraftingpro@gmail.com"
-              className="hover:text-[#DEDEDE] transition-colors"
+              className="hover:text-[var(--color-hover)] transition-colors"
             >
               <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
@@ -75,11 +75,22 @@ function App() {
       </div>
 
       {/* Content container */}
-      <div className="max-w-[1200px] mx-auto px-6">
+      <div className="max-w-[1200px] mx-auto">
         {/* Intro Section with constrained width */}
-        <div className="max-w-[960px] mx-auto px-6">
-          <section className="pt-40 pb-20">
-            <div className="flex items-center justify-between">
+        <div className="max-w-[960px] mx-auto px-8 md:px-6">
+          <section className="pt-8 md:pt-60 pb-18">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8 md:gap-0">
+              <div className="block md:hidden">
+                <div className="relative w-[175px] h-[175px] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)] rounded-xl">
+                  <img
+                    src="/photo.jpeg"
+                    alt="Photo of Stefan"
+                    className="w-full h-full object-cover rounded-xl"
+                  />
+                  <div className="absolute inset-0 rounded-xl shadow-inner pointer-events-none"></div>
+                </div>
+              </div>
+
               <div
                 className={`max-w-[500px] transition-opacity duration-1000 ${
                   showIntro ? "opacity-100" : "opacity-0"
@@ -134,7 +145,7 @@ function App() {
                   </span>
                 </h1>
 
-                <p className="text-lg text-[rgba(255,255,255,0.7)] leading-relaxed">
+                <p className="text-xl text-[var(--color-text-secondary)] leading-relaxed">
                   driven by a desire to build a legacy, i continuously refine
                   both my full-stack and ai skills through a dedicated
                   practice–feedback–learn loop{" "}
@@ -161,19 +172,19 @@ function App() {
               </div>
 
               <div
-                className={`transition-all duration-1000 ${
+                className={`hidden md:block transition-all duration-1000 ${
                   showIntro
                     ? "opacity-100 translate-x-0"
                     : "opacity-0 translate-x-10"
                 }`}
               >
-                <div className="relative w-[280px] h-[280px] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)] rounded-3xl">
+                <div className="relative w-[220px] h-[220px] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)] rounded-xl">
                   <img
                     src="/photo.jpeg"
                     alt="Photo of Stefan"
-                    className="w-full h-full object-cover rounded-3xl"
+                    className="w-full h-full object-cover rounded-xl"
                   />
-                  <div className="absolute inset-0 rounded-3xl shadow-inner pointer-events-none"></div>
+                  <div className="absolute inset-0 rounded-xl shadow-inner pointer-events-none"></div>
                 </div>
               </div>
             </div>

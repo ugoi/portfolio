@@ -1,84 +1,128 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,564;1,14..32,564&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz@0,14..32;1,14..32&display=swap');
 @import "tailwindcss";
 
 @theme {
+  /* Theme configuration */
   --font-inter: "Inter", sans-serif;
 
-  --animate-vanish: vanish 1s linear forwards;
+  /* Colors */
+  --color-background: rgb(14, 16, 17);
+  --color-navbar: rgba(14, 16, 17, 0.8);
+  --color-text-primary: #dedede;
+  --color-text-secondary: rgba(255, 255, 255, 0.7);
+  --color-text-muted: rgba(255, 255, 255, 0.3);
+  --color-hover: #dedede;
 
-  @keyframes vanish {
-    0%,
-    99% {
-      opacity: 1;
-    }
-    100% {
-      opacity: 0;
-    }
+  /* Animations */
+  --animation-duration-slow: 3s;
+  --animation-duration-medium: 1.5s;
+  --animation-duration-fast: 1s;
+
+  /* Border Radius */
+  --radius-navbar: 20px;
+  --radius-card: 24px;
+
+  /* Spacing */
+  --spacing-navbar: 24px;
+  --spacing-icon-gap: 24px;
+
+  /* Height */
+  --height-navbar: 72px;
+
+  /* Animation definitions */
+  --animation-spin-slow: spin-slow var(--animation-duration-slow) linear
+    infinite;
+  --animation-wiggle: wiggle var(--animation-duration-fast) ease-in-out infinite;
+  --animation-rotate-wiggle-45: rotate-wiggle-45
+    var(--animation-duration-medium) forwards;
+  --animation-rotate-unwiggle-45: rotate-unwiggle-45
+    var(--animation-duration-medium) forwards;
+  --animation-vanish: vanish var(--animation-duration-fast) linear forwards;
+  --animation-fade-in: fade-in 0.3s ease-out forwards;
+
+  /* Animation utilities */
+  --animate-spin-slow: var(--animation-spin-slow);
+  --animate-wiggle: var(--animation-wiggle);
+  --animate-rotate-wiggle-45: var(--animation-rotate-wiggle-45);
+  --animate-rotate-unwiggle-45: var(--animation-rotate-unwiggle-45);
+  --animate-vanish: var(--animation-vanish);
+  --animate-fade-in: var(--animation-fade-in);
+}
+
+/* Keyframes */
+@keyframes vanish {
+  0%,
+  99% {
+    opacity: 1;
   }
-
-  --animate-spin-slow: spin-slow 3s linear infinite;
-
-  @keyframes spin-slow {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  --animate-wiggle: wiggle 1s ease-in-out infinite;
-  @keyframes wiggle {
-    0%,
-    100% {
-      transform: rotate(-9deg);
-    }
-    50% {
-      transform: rotate(9deg);
-    }
-  }
-
-  --animate-rotate-wiggle-45: rotate-wiggle-45 1.5s forwards;
-  @keyframes rotate-wiggle-45 {
-    0% {
-      transform: rotate(0deg);
-    }
-    40% {
-      /* Overshoot: 45° + (15°/2) = 52.5° */
-      transform: rotate(52.5deg);
-    }
-    70% {
-      /* Undershoot: 45° - (5°/2) = 42.5° */
-      transform: rotate(42.5deg);
-    }
-    100% {
-      /* settle */
-      transform: rotate(45deg);
-    }
-  }
-
-  --animate-rotate-unwiggle-45: rotate-unwiggle-45 1.5s forwards;
-
-  @keyframes rotate-unwiggle-45 {
-    0% {
-      transform: rotate(45deg);
-    }
-    40% {
-      /* overshoot 0 - (15°/2) = -7.5° */
-      transform: rotate(-7.5deg);
-    }
-    70% {
-      /* undershoot 0 + (5°/2) = 2.5 */
-      transform: rotate(2.5deg);
-    }
-    100% {
-      transform: rotate(0deg);
-    }
+  100% {
+    opacity: 0;
   }
 }
 
-.hide-scrollbar {
+@keyframes spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes wiggle {
+  0%,
+  100% {
+    transform: rotate(-9deg);
+  }
+  50% {
+    transform: rotate(9deg);
+  }
+}
+
+@keyframes rotate-wiggle-45 {
+  0% {
+    transform: rotate(0deg);
+  }
+  40% {
+    transform: rotate(52.5deg);
+  }
+  70% {
+    transform: rotate(42.5deg);
+  }
+  100% {
+    transform: rotate(45deg);
+  }
+}
+
+@keyframes rotate-unwiggle-45 {
+  0% {
+    transform: rotate(45deg);
+  }
+  40% {
+    transform: rotate(-7.5deg);
+  }
+  70% {
+    transform: rotate(2.5deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Custom utilities */
+@utility hidescrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
-}
 
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
