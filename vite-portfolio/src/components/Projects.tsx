@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import Hls from "hls.js";
 
 interface Project {
   id: number;
@@ -7,6 +8,8 @@ interface Project {
   detailedDescription: string;
   technologies: string[];
   videoUrl: string;
+  hlsUrl: string;
+  previewUrl: string;
   thumbnailUrl: string;
   githubUrl: string;
 }
@@ -20,7 +23,12 @@ const projects: Project[] = [
       "A modern dating app that connects people based on real-time location and shared interests. Offers robust privacy settings and a clean, intuitive interface for users seeking meaningful connections.",
     technologies: ["Express", "React", "TypeScript", "PostgreSQL"],
     videoUrl: "/matcha-demo.mp4",
-    thumbnailUrl: "/matcha-thumbnail.jpg",
+    hlsUrl:
+      "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/playlist.m3u8",
+    previewUrl:
+      "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/preview.webp",
+    thumbnailUrl:
+      "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/thumbnail.jpg",
     githubUrl: "https://github.com/ugoi/Matcha",
   },
   // Add more projects here
@@ -32,7 +40,12 @@ const projects: Project[] = [
       "A modern dating app that connects people based on real-time location and shared interests. Offers robust privacy settings and a clean, intuitive interface for users seeking meaningful connections.",
     technologies: ["Express", "React", "TypeScript", "PostgreSQL"],
     videoUrl: "/matcha-demo.mp4",
-    thumbnailUrl: "/matcha-thumbnail.jpg",
+    hlsUrl:
+      "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/playlist.m3u8",
+    previewUrl:
+      "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/preview.webp",
+    thumbnailUrl:
+      "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/thumbnail.jpg",
     githubUrl: "https://github.com/ugoi/Matcha",
   },
   {
@@ -43,7 +56,12 @@ const projects: Project[] = [
       "A modern dating app that connects people based on real-time location and shared interests. Offers robust privacy settings and a clean, intuitive interface for users seeking meaningful connections.",
     technologies: ["Express", "React", "TypeScript", "PostgreSQL"],
     videoUrl: "/matcha-demo.mp4",
-    thumbnailUrl: "/matcha-thumbnail.jpg",
+    hlsUrl:
+      "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/playlist.m3u8",
+    previewUrl:
+      "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/preview.webp",
+    thumbnailUrl:
+      "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/thumbnail.jpg",
     githubUrl: "https://github.com/ugoi/Matcha",
   },
   {
@@ -54,7 +72,12 @@ const projects: Project[] = [
       "A modern dating app that connects people based on real-time location and shared interests. Offers robust privacy settings and a clean, intuitive interface for users seeking meaningful connections.",
     technologies: ["Express", "React", "TypeScript", "PostgreSQL"],
     videoUrl: "/matcha-demo.mp4",
-    thumbnailUrl: "/matcha-thumbnail.jpg",
+    hlsUrl:
+      "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/playlist.m3u8",
+    previewUrl:
+      "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/preview.webp",
+    thumbnailUrl:
+      "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/thumbnail.jpg",
     githubUrl: "https://github.com/ugoi/Matcha",
   },
   {
@@ -65,7 +88,12 @@ const projects: Project[] = [
       "A modern dating app that connects people based on real-time location and shared interests. Offers robust privacy settings and a clean, intuitive interface for users seeking meaningful connections.",
     technologies: ["Express", "React", "TypeScript", "PostgreSQL"],
     videoUrl: "/matcha-demo.mp4",
-    thumbnailUrl: "/matcha-thumbnail.jpg",
+    hlsUrl:
+      "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/playlist.m3u8",
+    previewUrl:
+      "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/preview.webp",
+    thumbnailUrl:
+      "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/thumbnail.jpg",
     githubUrl: "https://github.com/ugoi/Matcha",
   },
 ];
@@ -75,6 +103,50 @@ export function Projects() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
+  const videoRefs = useRef<{ [key: number]: HTMLVideoElement }>({});
+  const [loadedVideos, setLoadedVideos] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    // Initialize HLS for each video when they become visible
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const video = entry.target as HTMLVideoElement;
+          const projectId = Number(video.dataset.projectId);
+
+          if (entry.isIntersecting) {
+            if (Hls.isSupported() && projects[projectId - 1].hlsUrl) {
+              const hls = new Hls();
+              hls.loadSource(projects[projectId - 1].hlsUrl);
+              hls.attachMedia(video);
+              hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                video.play().catch(() => {});
+              });
+
+              // Listen for when video starts playing
+              video.addEventListener("playing", () => {
+                setLoadedVideos((prev) => new Set([...prev, projectId]));
+              });
+            }
+          }
+        });
+      },
+      {
+        threshold: 0.1,
+      }
+    );
+
+    // Observe all video elements
+    Object.values(videoRefs.current).forEach((video) => {
+      if (video) {
+        observer.observe(video);
+      }
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   const handleScroll = () => {
     if (!scrollContainerRef.current) return;
@@ -151,16 +223,34 @@ export function Projects() {
                          index !== 0 ? "ml-4 md:ml-12" : ""
                        }`}
             >
-              <video
-                autoPlay
-                muted
-                loop
-                playsInline
-                poster={project.thumbnailUrl}
-                className="w-full h-full object-cover"
-              >
-                <source src={project.videoUrl} type="video/mp4" />
-              </video>
+              <div className="w-full h-full">
+                {/* Preview image that shows while video loads */}
+                <img
+                  src={project.previewUrl}
+                  alt={`${project.title} preview`}
+                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
+                    loadedVideos.has(project.id) ? "opacity-0" : "opacity-100"
+                  }`}
+                  loading="lazy"
+                />
+                <video
+                  ref={(el) => {
+                    if (el) videoRefs.current[project.id] = el;
+                  }}
+                  data-project-id={project.id}
+                  muted
+                  loop
+                  playsInline
+                  poster={project.thumbnailUrl}
+                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
+                    loadedVideos.has(project.id) ? "opacity-100" : "opacity-0"
+                  }`}
+                >
+                  {!Hls.isSupported() && (
+                    <source src={project.videoUrl} type="video/mp4" />
+                  )}
+                </video>
+              </div>
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent">
                 <div className="absolute bottom-6 left-5">
                   <h3 className="text-xl font-bold mb-1.5">{project.title}</h3>
