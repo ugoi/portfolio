@@ -103,7 +103,7 @@ function App() {
                   i'm stefan
                   <span className="ml-2 inline-flex items-center">
                     <div className="relative inline-block group">
-                      {/* Rotating container for the peace emoji and the swiss flag */}
+                      {/* Rotating container for the peace emoji and the serbian flag */}
                       <div
                         className={`
                           ${
@@ -116,15 +116,23 @@ function App() {
                               ? "animate-rotate-unwiggle-45"
                               : ""
                           }
-                          [animation-duration:500ms]
+                          [animation-duration:500ms] cursor-pointer
                         `}
                         onMouseEnter={() => {
                           setIsEmojiFlagHovered(true);
                           setHasInteracted(true);
                         }}
                         onMouseLeave={() => setIsEmojiFlagHovered(false)}
+                        onTouchStart={() => {
+                          if (isEmojiFlagHovered === false) {
+                            setIsEmojiFlagHovered(true);
+                          } else {
+                            setIsEmojiFlagHovered(false);
+                          }
+                          setHasInteracted(true);
+                        }}
                       >
-                        {/* Peace Emoji: rotates 90° and fades out when the container is hovered */}
+                        {/* Peace Emoji: rotates and fades out when the container is hovered/tapped */}
                         <span
                           className={`
                           block text-[42px] transition-all duration-200 transform 
@@ -133,7 +141,7 @@ function App() {
                         >
                           ✌️
                         </span>
-                        {/* Swiss Flag: fades in when the container is hovered */}
+                        {/* Serbian Flag: fades in when the container is hovered/tapped */}
                         <span
                           className={`
                           absolute inset-0 flex items-center justify-center text-[42px] 
