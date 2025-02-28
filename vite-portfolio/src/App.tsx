@@ -76,11 +76,21 @@ function App() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8 md:gap-0">
               <div className="block md:hidden">
                 <div className="relative w-[175px] h-[175px] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)] rounded-xl">
-                  <img
-                    src="https://cdn.stefandukic.com/stefan-greece.jpeg"
-                    alt="Photo of Stefan"
-                    className="w-full h-full object-cover rounded-xl"
-                  />
+                  <picture>
+                    <source
+                      srcSet="https://cdn.stefandukic.com/stefan-greece.webp"
+                      type="image/webp"
+                    />
+                    <img
+                      src="https://cdn.stefandukic.com/stefan-greece.jpeg"
+                      alt="Photo of Stefan"
+                      className="w-full h-full object-cover rounded-xl"
+                      width="175"
+                      height="175"
+                      loading="eager"
+                      decoding="async"
+                    />
+                  </picture>
                   <div className="absolute inset-0 rounded-xl shadow-inner pointer-events-none"></div>
                 </div>
               </div>
@@ -165,11 +175,21 @@ function App() {
                 className={`hidden md:block transition-all duration-1000 animate-slide-from-right`}
               >
                 <div className="relative w-[220px] h-[220px] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)] rounded-xl">
-                  <img
-                    src="https://cdn.stefandukic.com/stefan-greece.jpeg"
-                    alt="Photo of Stefan"
-                    className="w-full h-full object-cover rounded-xl"
-                  />
+                  <picture>
+                    <source
+                      srcSet="https://cdn.stefandukic.com/stefan-greece.webp"
+                      type="image/webp"
+                    />
+                    <img
+                      src="https://cdn.stefandukic.com/stefan-greece.jpeg"
+                      alt="Photo of Stefan"
+                      className="w-full h-full object-cover rounded-xl"
+                      width="220"
+                      height="220"
+                      loading="eager"
+                      decoding="async"
+                    />
+                  </picture>
                   <div className="absolute inset-0 rounded-xl shadow-inner pointer-events-none"></div>
                 </div>
               </div>
