@@ -1,16 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Projects } from "./components/Projects";
 
 function App() {
   // Animation states
-  const [showIntro, setShowIntro] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [isEmojiFlagHovered, setIsEmojiFlagHovered] = useState(false);
-
-  // Trigger intro animation on mount
-  useEffect(() => {
-    setShowIntro(true);
-  }, []);
 
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text-primary)]">
@@ -91,11 +85,7 @@ function App() {
                 </div>
               </div>
 
-              <div
-                className={`max-w-[500px] transition-opacity duration-1000 ${
-                  showIntro ? "opacity-100" : "opacity-0"
-                }`}
-              >
+              <div className="max-w-[500px] animate-slide-from-left">
                 <h1 className="text-5xl font-bold mb-4">
                   i'm stefan
                   <span className="ml-2 inline-flex items-center">
@@ -172,11 +162,7 @@ function App() {
               </div>
 
               <div
-                className={`hidden md:block transition-all duration-1000 ${
-                  showIntro
-                    ? "opacity-100 translate-x-0"
-                    : "opacity-0 translate-x-10"
-                }`}
+                className={`hidden md:block transition-all duration-1000 animate-slide-from-right`}
               >
                 <div className="relative w-[220px] h-[220px] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)] rounded-xl">
                   <img
