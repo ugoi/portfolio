@@ -98,6 +98,7 @@ export function Projects() {
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
   const videoRefs = useRef<{ [key: number]: HTMLVideoElement }>({});
+  const modalVideoRef = useRef<HTMLVideoElement>(null);
   const [loadedVideos, setLoadedVideos] = useState<Set<number>>(new Set());
 
   useEffect(() => {
@@ -141,6 +142,26 @@ export function Projects() {
       observer.disconnect();
     };
   }, []);
+
+  // Add new useEffect for modal video
+  useEffect(() => {
+    if (selectedProject && modalVideoRef.current) {
+      const video = modalVideoRef.current;
+
+      if (Hls.isSupported()) {
+        const hls = new Hls();
+        hls.loadSource(selectedProject.hlsUrl);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          video.play().catch(() => {});
+        });
+      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        // For Safari which has native HLS support
+        video.src = selectedProject.hlsUrl;
+        video.play().catch(() => {});
+      }
+    }
+  }, [selectedProject]);
 
   const handleScroll = () => {
     if (!scrollContainerRef.current) return;
@@ -271,6 +292,7 @@ export function Projects() {
           >
             <div className="aspect-video rounded-xl overflow-hidden mb-6">
               <video
+                ref={modalVideoRef}
                 autoPlay
                 muted
                 loop
@@ -278,10 +300,12 @@ export function Projects() {
                 controls
                 className="w-full h-full object-cover"
               >
-                <source
-                  src={selectedProject.hlsUrl}
-                  type="application/x-mpegURL"
-                />
+                {!Hls.isSupported() && (
+                  <source
+                    src={selectedProject.hlsUrl}
+                    type="application/x-mpegURL"
+                  />
+                )}
               </video>
             </div>
 
