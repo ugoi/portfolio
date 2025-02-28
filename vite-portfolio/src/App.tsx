@@ -23,7 +23,7 @@ function App() {
 
           <div className="flex items-center gap-[var(--spacing-icon-gap)] text-[var(--color-text-muted)]">
             <a
-              href="/resume.pdf"
+              href="https://cdn.stefandukic.com/resume.pdf"
               className="hover:text-[var(--color-hover)] transition-colors"
               target="_blank"
               rel="noopener noreferrer"
@@ -83,7 +83,7 @@ function App() {
               <div className="block md:hidden">
                 <div className="relative w-[175px] h-[175px] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)] rounded-xl">
                   <img
-                    src="/photo.jpeg"
+                    src="https://cdn.stefandukic.com/stefan-greece.jpeg"
                     alt="Photo of Stefan"
                     className="w-full h-full object-cover rounded-xl"
                   />
@@ -180,7 +180,7 @@ function App() {
               >
                 <div className="relative w-[220px] h-[220px] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)] rounded-xl">
                   <img
-                    src="/photo.jpeg"
+                    src="https://cdn.stefandukic.com/stefan-greece.jpeg"
                     alt="Photo of Stefan"
                     className="w-full h-full object-cover rounded-xl"
                   />

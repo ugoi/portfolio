@@ -7,7 +7,6 @@ interface Project {
   shortDescription: string;
   detailedDescription: string;
   technologies: string[];
-  videoUrl: string;
   hlsUrl: string;
   previewUrl: string;
   thumbnailUrl: string;
@@ -22,7 +21,6 @@ const projects: Project[] = [
     detailedDescription:
       "A modern dating app that connects people based on real-time location and shared interests. Offers robust privacy settings and a clean, intuitive interface for users seeking meaningful connections.",
     technologies: ["Express", "React", "TypeScript", "PostgreSQL"],
-    videoUrl: "/matcha-demo.mp4",
     hlsUrl:
       "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/playlist.m3u8",
     previewUrl:
@@ -39,7 +37,6 @@ const projects: Project[] = [
     detailedDescription:
       "A modern dating app that connects people based on real-time location and shared interests. Offers robust privacy settings and a clean, intuitive interface for users seeking meaningful connections.",
     technologies: ["Express", "React", "TypeScript", "PostgreSQL"],
-    videoUrl: "/matcha-demo.mp4",
     hlsUrl:
       "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/playlist.m3u8",
     previewUrl:
@@ -55,7 +52,6 @@ const projects: Project[] = [
     detailedDescription:
       "A modern dating app that connects people based on real-time location and shared interests. Offers robust privacy settings and a clean, intuitive interface for users seeking meaningful connections.",
     technologies: ["Express", "React", "TypeScript", "PostgreSQL"],
-    videoUrl: "/matcha-demo.mp4",
     hlsUrl:
       "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/playlist.m3u8",
     previewUrl:
@@ -71,7 +67,6 @@ const projects: Project[] = [
     detailedDescription:
       "A modern dating app that connects people based on real-time location and shared interests. Offers robust privacy settings and a clean, intuitive interface for users seeking meaningful connections.",
     technologies: ["Express", "React", "TypeScript", "PostgreSQL"],
-    videoUrl: "/matcha-demo.mp4",
     hlsUrl:
       "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/playlist.m3u8",
     previewUrl:
@@ -87,7 +82,6 @@ const projects: Project[] = [
     detailedDescription:
       "A modern dating app that connects people based on real-time location and shared interests. Offers robust privacy settings and a clean, intuitive interface for users seeking meaningful connections.",
     technologies: ["Express", "React", "TypeScript", "PostgreSQL"],
-    videoUrl: "/matcha-demo.mp4",
     hlsUrl:
       "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/playlist.m3u8",
     previewUrl:
@@ -247,7 +241,7 @@ export function Projects() {
                   }`}
                 >
                   {!Hls.isSupported() && (
-                    <source src={project.videoUrl} type="video/mp4" />
+                    <source src={project.hlsUrl} type="application/x-mpegURL" />
                   )}
                 </video>
               </div>
@@ -284,7 +278,10 @@ export function Projects() {
                 controls
                 className="w-full h-full object-cover"
               >
-                <source src={selectedProject.videoUrl} type="video/mp4" />
+                <source
+                  src={selectedProject.hlsUrl}
+                  type="application/x-mpegURL"
+                />
               </video>
             </div>
 
