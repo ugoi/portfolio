@@ -9,6 +9,7 @@
     "build:client": "vite build --outDir dist/client --ssrManifest",
     "build:server": "vite build --ssr src/entry-server.tsx --outDir dist/server",
     "preview": "cross-env NODE_ENV=production node server",
+    "preview:static": "vite preview --outDir dist/static",
     "generate": "npm run build && node prerender"
   },
   "dependencies": {

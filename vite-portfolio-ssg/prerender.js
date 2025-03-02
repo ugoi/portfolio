@@ -5,7 +5,44 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const toAbsolute = (p) => path.resolve(__dirname, p);
 
+async function copyDir(src, dest) {
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+  fs.mkdirSync(dest, { recursive: true });
+
+  for (let entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+
+    if (entry.isDirectory()) {
+      await copyDir(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
 async function prerender() {
+  // Create static directory
+  const staticDir = toAbsolute("dist/static");
+  fs.mkdirSync(staticDir, { recursive: true });
+
+  // Copy all assets from client build
+  await copyDir(
+    toAbsolute("dist/client/assets"),
+    toAbsolute("dist/static/assets")
+  );
+
+  // Copy public files
+  if (fs.existsSync(toAbsolute("public"))) {
+    const files = fs.readdirSync(toAbsolute("public"));
+    for (const file of files) {
+      fs.copyFileSync(
+        toAbsolute(`public/${file}`),
+        toAbsolute(`dist/static/${file}`)
+      );
+    }
+  }
+
   // Read the template
   const template = fs.readFileSync(
     toAbsolute("dist/client/index.html"),
@@ -26,11 +63,9 @@ async function prerender() {
   // Pre-render each route
   for (const url of routes) {
     try {
-      const [appHtml, preloadLinks] = await render(url, manifest);
+      const { html: appHtml } = await render(url, manifest);
 
-      const html = template
-        .replace("<!--preload-links-->", preloadLinks || "")
-        .replace("<!--ssr-outlet-->", appHtml);
+      const html = template.replace("<!--app-html-->", appHtml);
 
       const filePath = `dist/static${url === "/" ? "/index" : url}.html`;
       const fileDir = path.dirname(toAbsolute(filePath));
