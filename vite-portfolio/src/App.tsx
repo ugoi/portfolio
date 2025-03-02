@@ -1,5 +1,7 @@
-import { useState } from "react";
-import { Projects } from "./components/Projects";
+import { useState, lazy, Suspense } from "react";
+
+// Lazy load the Projects component
+const Projects = lazy(() => import("./components/Projects"));
 
 function App() {
   // Animation states
@@ -229,8 +231,36 @@ function App() {
           </section>
         </div>
 
-        {/* Add the Projects section */}
-        <Projects />
+        {/* Add the Projects section with Suspense */}
+        <Suspense
+          fallback={
+            <div className="max-w-[1104px] mx-auto">
+              <div className="flex overflow-x-auto hidescrollbar md:py-22 md:bg-[rgb(18,18,18)] md:rounded-[60px] md:border md:border-white/[0.08] md:shadow-[0_0_40px_rgb(10,10,10),0_0_80px_rgb(5,5,5),0_0_120px_rgb(0,0,0)] relative">
+                <div
+                  className="shrink-0 w-[30px] md:w-[88px]"
+                  aria-hidden="true"
+                ></div>
+                {[1, 2, 3].map((index) => (
+                  <div
+                    key={index}
+                    className={`min-w-[220px] md:min-w-[266px] h-[450px] md:h-[575px] relative rounded-[20px] overflow-hidden
+                             bg-white/[0.03] animate-pulse ${
+                               index !== 1 ? "ml-4 md:ml-12" : ""
+                             }`}
+                  >
+                    <div className="absolute bottom-6 left-5 w-3/4">
+                      <div className="h-6 bg-white/[0.07] rounded mb-2"></div>
+                      <div className="h-4 bg-white/[0.07] rounded w-2/3"></div>
+                    </div>
+                  </div>
+                ))}
+                <div className="shrink-0 w-[88px]" aria-hidden="true"></div>
+              </div>
+            </div>
+          }
+        >
+          <Projects />
+        </Suspense>
       </div>
     </div>
   );

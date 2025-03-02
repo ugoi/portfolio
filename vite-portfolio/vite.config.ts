@@ -6,6 +6,20 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
-    sourcemap: true, // Enable source maps for production builds
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "react-vendor": ["react", "react-dom"],
+          "hls-vendor": ["hls.js"],
+        },
+        chunkFileNames: "assets/[name]-[hash].js",
+        assetFileNames: "assets/[name]-[hash][extname]",
+      },
+    },
+    chunkSizeWarningLimit: 500,
+    target: "esnext",
+    minify: "esbuild",
+    cssMinify: true,
   },
 });

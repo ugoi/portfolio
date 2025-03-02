@@ -98,7 +98,7 @@ const projects: Project[] = [
   },
 ];
 
-export function Projects() {
+export default function Projects() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
