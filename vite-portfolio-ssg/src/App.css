@@ -5,6 +5,23 @@
   text-align: center;
 }
 
+.profile-section {
+  margin-bottom: 2rem;
+}
+
+.profile-image {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease;
+}
+
+.profile-image:hover {
+  transform: scale(1.05);
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;
