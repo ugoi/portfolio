@@ -192,6 +192,7 @@ export function Projects() {
 
   return (
     <section className="md:py-12 relative">
+      <h2 className="sr-only">My Projects</h2>
       {/* Scroll Arrows */}
       {showLeftArrow && (
         <button
