@@ -263,6 +263,7 @@ export function Projects() {
                   muted
                   loop
                   playsInline
+                  crossOrigin="anonymous"
                   poster={project.thumbnailUrl}
                   className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
                     loadedVideos.has(project.id) ? "opacity-100" : "opacity-0"
@@ -312,6 +313,7 @@ export function Projects() {
                 loop
                 playsInline
                 controls
+                crossOrigin="anonymous"
                 className="w-full h-full object-cover"
               >
                 <track
