@@ -10,68 +10,85 @@ Welcome to my personal portfolio website! This modern, responsive web applicatio
 - Interactive UI elements
 - Fast loading and optimized performance
 - SEO friendly
+- Video streaming capabilities with HLS support
+- TypeScript for enhanced type safety
 
 ## 🛠️ Tech Stack
 
-- **Frontend Framework**: React 18 with TypeScript
-- **Build Tool**: Vite
-- **Styling**: TailwindCSS
-- **Deployment**: [Your deployment platform]
-- **Image Hosting**: CDN (cdn.stefandukic.com)
+- **Frontend Framework**: React with TypeScript
+- **Build Tool**: Vite 6.1
+- **Styling**: TailwindCSS 4.0
+- **Video Streaming**: HLS.js
+- **Type Checking**: TypeScript 5.7
+- **Linting**: ESLint 9
+- **Development Tools**:
+  - SWC (via @vitejs/plugin-react-swc) for fast refresh
+  - React Developer Tools
+  - TypeScript ESLint integration
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js (v18 or higher)
+- Node.js (v18 or higher recommended)
 - npm or yarn
 
 ### Installation
 
 1. Clone the repository:
 
-```bash
-git clone https://github.com/ugoi/vite-portfolio.git
-cd vite-portfolio
-```
+   ```bash
+   git clone https://github.com/ugoi/vite-portfolio.git
+   cd vite-portfolio
+   ```
 
 2. Install dependencies:
 
-```bash
-npm install
-# or
-yarn install
-```
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
 
 3. Start the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-```
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
 
 The site will be available at `http://localhost:5173`
 
-### Building for Production
+### Available Scripts
 
-```bash
-npm run build
-# or
-yarn build
-```
+- `npm run dev` - Start development server
+- `npm run build` - Build for production (includes TypeScript build)
+- `npm run preview` - Preview production build locally
+- `npm run lint` - Run ESLint checks
 
-## 📝 Project Structure
+## 📁 Project Structure
 
 ```
 vite-portfolio/
-├── src/
-│   ├── components/     # React components
-│   ├── assets/        # Static assets
-│   └── App.tsx        # Main application component
-├── public/            # Public assets
-└── index.html         # Entry HTML file
+├── src/               # Source code
+│   ├── components/    # React components
+│   └── assets/       # Static assets
+├── public/           # Public assets
+├── dist/            # Production build output
+├── index.html       # Entry HTML file
+├── vite.config.ts   # Vite configuration
+├── tsconfig.json    # TypeScript configuration
+├── eslint.config.js # ESLint configuration
+└── package.json     # Project dependencies and scripts
 ```
+
+## 🔧 Configuration Files
+
+- `vite.config.ts` - Vite bundler configuration
+- `tsconfig.json` - TypeScript compiler settings
+- `eslint.config.js` - ESLint rules and plugins
+- `tsconfig.node.json` - TypeScript settings for Node.js environment
+- `tsconfig.app.json` - Application-specific TypeScript settings
 
 ## 🤝 Contact
 
@@ -82,3 +99,12 @@ vite-portfolio/
 ## 📄 License
 
 This project is open source and available under the [MIT License](LICENSE).
+
+## 🙏 Acknowledgments
+
+Special thanks to:
+
+- The React team for their excellent framework
+- Vite team for the blazing fast build tool
+- TailwindCSS team for the utility-first CSS framework
+- All contributors and supporters of this project
