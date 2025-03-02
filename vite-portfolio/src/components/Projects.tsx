@@ -11,6 +11,7 @@ interface Project {
   previewUrl: string;
   thumbnailUrl: string;
   githubUrl: string;
+  captionsUrl: string;
 }
 
 const projects: Project[] = [
@@ -28,6 +29,7 @@ const projects: Project[] = [
     thumbnailUrl:
       "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/thumbnail.jpg",
     githubUrl: "https://github.com/ugoi/Matcha",
+    captionsUrl: "https://cdn.stefandukic.com/captions/matcha.vtt",
   },
   // Add more projects here
   {
@@ -44,6 +46,7 @@ const projects: Project[] = [
     thumbnailUrl:
       "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/thumbnail.jpg",
     githubUrl: "https://github.com/ugoi/Matcha",
+    captionsUrl: "https://cdn.stefandukic.com/captions/matcha.vtt",
   },
   {
     id: 3,
@@ -59,6 +62,7 @@ const projects: Project[] = [
     thumbnailUrl:
       "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/thumbnail.jpg",
     githubUrl: "https://github.com/ugoi/Matcha",
+    captionsUrl: "https://cdn.stefandukic.com/captions/matcha.vtt",
   },
   {
     id: 4,
@@ -74,6 +78,7 @@ const projects: Project[] = [
     thumbnailUrl:
       "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/thumbnail.jpg",
     githubUrl: "https://github.com/ugoi/Matcha",
+    captionsUrl: "https://cdn.stefandukic.com/captions/matcha.vtt",
   },
   {
     id: 5,
@@ -89,6 +94,7 @@ const projects: Project[] = [
     thumbnailUrl:
       "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/thumbnail.jpg",
     githubUrl: "https://github.com/ugoi/Matcha",
+    captionsUrl: "https://cdn.stefandukic.com/captions/matcha.vtt",
   },
 ];
 
@@ -262,6 +268,13 @@ export function Projects() {
                     loadedVideos.has(project.id) ? "opacity-100" : "opacity-0"
                   }`}
                 >
+                  <track
+                    kind="captions"
+                    src={project.captionsUrl}
+                    srcLang="en"
+                    label="English"
+                    default
+                  />
                   {!Hls.isSupported() && (
                     <source src={project.hlsUrl} type="application/x-mpegURL" />
                   )}
@@ -301,6 +314,13 @@ export function Projects() {
                 controls
                 className="w-full h-full object-cover"
               >
+                <track
+                  kind="captions"
+                  src={selectedProject.captionsUrl}
+                  srcLang="en"
+                  label="English"
+                  default
+                />
                 {!Hls.isSupported() && (
                   <source
                     src={selectedProject.hlsUrl}
