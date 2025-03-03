@@ -10,7 +10,8 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          "react-vendor": ["react", "react-dom"],
+          "react-vendor": ["react"],
+          "react-dom-vendor": ["react-dom"],
           "hls-vendor": ["hls.js"],
         },
         chunkFileNames: "assets/[name]-[hash].js",
@@ -21,5 +22,9 @@ export default defineConfig({
     target: "esnext",
     minify: "esbuild",
     cssMinify: true,
+    modulePreload: {
+      polyfill: false, // Reduces polyfill code if you don't need legacy browser support
+    },
+    reportCompressedSize: false, // Speeds up build
   },
 });

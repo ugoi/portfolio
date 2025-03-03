@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import Hls from "hls.js";
 
 interface Project {
   id: number;
@@ -111,23 +110,30 @@ export default function Projects() {
     // Initialize HLS for each video when they become visible
     const observer = new IntersectionObserver(
       (entries) => {
-        entries.forEach((entry) => {
+        entries.forEach(async (entry) => {
           const video = entry.target as HTMLVideoElement;
           const projectId = Number(video.dataset.projectId);
 
           if (entry.isIntersecting) {
-            if (Hls.isSupported() && projects[projectId - 1].hlsUrl) {
-              const hls = new Hls();
-              hls.loadSource(projects[projectId - 1].hlsUrl);
-              hls.attachMedia(video);
-              hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                video.play().catch(() => {});
-              });
+            try {
+              // Dynamically import HLS.js only when needed
+              const { default: Hls } = await import("hls.js");
 
-              // Listen for when video starts playing
-              video.addEventListener("playing", () => {
-                setLoadedVideos((prev) => new Set([...prev, projectId]));
-              });
+              if (Hls.isSupported() && projects[projectId - 1].hlsUrl) {
+                const hls = new Hls();
+                hls.loadSource(projects[projectId - 1].hlsUrl);
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                  video.play().catch(() => {});
+                });
+
+                // Listen for when video starts playing
+                video.addEventListener("playing", () => {
+                  setLoadedVideos((prev) => new Set([...prev, projectId]));
+                });
+              }
+            } catch (error) {
+              console.error("Error loading HLS:", error);
             }
           }
         });
@@ -149,23 +155,33 @@ export default function Projects() {
     };
   }, []);
 
-  // Add new useEffect for modal video
+  // Update modal video effect to also use dynamic import
   useEffect(() => {
     if (selectedProject && modalVideoRef.current) {
       const video = modalVideoRef.current;
 
-      if (Hls.isSupported()) {
-        const hls = new Hls();
-        hls.loadSource(selectedProject.hlsUrl);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          video.play().catch(() => {});
-        });
-      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        // For Safari which has native HLS support
-        video.src = selectedProject.hlsUrl;
-        video.play().catch(() => {});
-      }
+      const initializeHls = async () => {
+        try {
+          const { default: Hls } = await import("hls.js");
+
+          if (Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource(selectedProject.hlsUrl);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+              video.play().catch(() => {});
+            });
+          } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+            // For Safari which has native HLS support
+            video.src = selectedProject.hlsUrl;
+            video.play().catch(() => {});
+          }
+        } catch (error) {
+          console.error("Error loading HLS:", error);
+        }
+      };
+
+      initializeHls();
     }
   }, [selectedProject]);
 
@@ -276,9 +292,6 @@ export default function Projects() {
                     label="English"
                     default
                   />
-                  {!Hls.isSupported() && (
-                    <source src={project.hlsUrl} type="application/x-mpegURL" />
-                  )}
                 </video>
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent">
@@ -323,12 +336,6 @@ export default function Projects() {
                   label="English"
                   default
                 />
-                {!Hls.isSupported() && (
-                  <source
-                    src={selectedProject.hlsUrl}
-                    type="application/x-mpegURL"
-                  />
-                )}
               </video>
             </div>
 
