@@ -157,11 +157,18 @@ export default function Projects() {
   useEffect(() => {
     // Check if device is mobile
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      // Consider it mobile if either width or height is less than 768px
+      setIsMobile(width < 768 || height < 768);
     };
     checkMobile();
     window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
+    window.addEventListener("orientationchange", checkMobile);
+    return () => {
+      window.removeEventListener("resize", checkMobile);
+      window.removeEventListener("orientationchange", checkMobile);
+    };
   }, []);
 
   useEffect(() => {
@@ -423,57 +430,59 @@ export default function Projects() {
           onClick={() => setSelectedProject(null)}
         >
           <div
-            className="bg-[#0E1011] rounded-2xl max-w-3xl w-full p-6 animate-fade-in"
+            className="bg-[#0E1011] rounded-2xl max-w-3xl w-full p-6 animate-fade-in overflow-y-auto max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="aspect-video rounded-xl overflow-hidden mb-6 relative">
-              {selectedProject.hlsUrl ? (
-                <>
-                  <video
-                    ref={modalVideoRef}
-                    autoPlay={!isMobile}
-                    muted
-                    loop
-                    playsInline
-                    controls={!isMobile}
-                    crossOrigin="anonymous"
-                    className="w-full h-full object-contain bg-black"
-                    onClick={handleVideoClick}
-                  >
-                    {selectedProject.captionsUrl && (
-                      <track
-                        kind="captions"
-                        src={selectedProject.captionsUrl}
-                        srcLang="en"
-                        label="English"
-                        default
-                      />
-                    )}
-                  </video>
-                  {isMobile && isVideoPaused && (
-                    <div
-                      className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer"
+            <div className="relative mb-6">
+              <div className="aspect-video md:aspect-video rounded-xl overflow-hidden">
+                {selectedProject.hlsUrl ? (
+                  <>
+                    <video
+                      ref={modalVideoRef}
+                      autoPlay={!isMobile}
+                      muted
+                      loop
+                      playsInline
+                      controls={!isMobile}
+                      crossOrigin="anonymous"
+                      className="w-full h-full object-contain bg-black"
                       onClick={handleVideoClick}
                     >
-                      <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                        <svg
-                          className="w-8 h-8 text-white"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M8 5v14l11-7z" />
-                        </svg>
+                      {selectedProject.captionsUrl && (
+                        <track
+                          kind="captions"
+                          src={selectedProject.captionsUrl}
+                          srcLang="en"
+                          label="English"
+                          default
+                        />
+                      )}
+                    </video>
+                    {isMobile && isVideoPaused && (
+                      <div
+                        className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer"
+                        onClick={handleVideoClick}
+                      >
+                        <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                          <svg
+                            className="w-8 h-8 text-white"
+                            fill="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path d="M8 5v14l11-7z" />
+                          </svg>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <img
-                  src={selectedProject.previewUrl}
-                  alt={`${selectedProject.title} preview`}
-                  className="w-full h-full object-contain bg-black"
-                />
-              )}
+                    )}
+                  </>
+                ) : (
+                  <img
+                    src={selectedProject.previewUrl}
+                    alt={`${selectedProject.title} preview`}
+                    className="w-full h-full object-contain bg-black"
+                  />
+                )}
+              </div>
             </div>
 
             <h3 className="text-2xl font-bold mb-2">{selectedProject.title}</h3>
