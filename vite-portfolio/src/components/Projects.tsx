@@ -277,9 +277,7 @@ export default function Projects() {
     }
   }, [selectedProject, isMobile]);
 
-  const handleVideoClick = async (
-    e: React.MouseEvent<HTMLVideoElement | HTMLDivElement>
-  ) => {
+  const handleVideoClick = async () => {
     if (!isMobile) return;
 
     const video = modalVideoRef.current;
