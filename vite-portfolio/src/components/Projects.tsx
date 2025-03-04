@@ -151,6 +151,18 @@ export default function Projects() {
   const videoRefs = useRef<{ [key: number]: HTMLVideoElement }>({});
   const modalVideoRef = useRef<HTMLVideoElement>(null);
   const [loadedVideos, setLoadedVideos] = useState<Set<number>>(new Set());
+  const [isMobile, setIsMobile] = useState(false);
+  const [isVideoPaused, setIsVideoPaused] = useState(true);
+
+  useEffect(() => {
+    // Check if device is mobile
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   useEffect(() => {
     // Initialize HLS for each video when they become visible
@@ -206,6 +218,12 @@ export default function Projects() {
     if (selectedProject && modalVideoRef.current) {
       const video = modalVideoRef.current;
 
+      const handlePlay = () => setIsVideoPaused(false);
+      const handlePause = () => setIsVideoPaused(true);
+
+      video.addEventListener("play", handlePlay);
+      video.addEventListener("pause", handlePause);
+
       const initializeHls = async () => {
         try {
           const { default: Hls } = await import("hls.js");
@@ -215,12 +233,16 @@ export default function Projects() {
             hls.loadSource(selectedProject.hlsUrl);
             hls.attachMedia(video);
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
-              video.play().catch(() => {});
+              if (!isMobile) {
+                video.play().catch(() => {});
+              }
             });
           } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
             // For Safari which has native HLS support
             video.src = selectedProject.hlsUrl;
-            video.play().catch(() => {});
+            if (!isMobile) {
+              video.play().catch(() => {});
+            }
           }
         } catch (error) {
           console.error("Error loading HLS:", error);
@@ -228,8 +250,46 @@ export default function Projects() {
       };
 
       initializeHls();
+
+      // Handle fullscreen changes
+      const handleFullscreenChange = () => {
+        if (!document.fullscreenElement) {
+          video.pause();
+        }
+      };
+
+      document.addEventListener("fullscreenchange", handleFullscreenChange);
+      return () => {
+        document.removeEventListener(
+          "fullscreenchange",
+          handleFullscreenChange
+        );
+        video.removeEventListener("play", handlePlay);
+        video.removeEventListener("pause", handlePause);
+      };
     }
-  }, [selectedProject]);
+  }, [selectedProject, isMobile]);
+
+  const handleVideoClick = async (
+    e: React.MouseEvent<HTMLVideoElement | HTMLDivElement>
+  ) => {
+    if (!isMobile) return;
+
+    const video = modalVideoRef.current;
+    if (!video) return;
+
+    try {
+      if (!document.fullscreenElement) {
+        await video.requestFullscreen();
+        await video.play();
+      } else {
+        await document.exitFullscreen();
+        video.pause();
+      }
+    } catch (error) {
+      console.error("Error handling fullscreen:", error);
+    }
+  };
 
   const handleScroll = () => {
     if (!scrollContainerRef.current) return;
@@ -366,28 +426,47 @@ export default function Projects() {
             className="bg-[#0E1011] rounded-2xl max-w-3xl w-full p-6 animate-fade-in"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="aspect-video rounded-xl overflow-hidden mb-6">
+            <div className="aspect-video rounded-xl overflow-hidden mb-6 relative">
               {selectedProject.hlsUrl ? (
-                <video
-                  ref={modalVideoRef}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  controls
-                  crossOrigin="anonymous"
-                  className="w-full h-full object-contain bg-black"
-                >
-                  {selectedProject.captionsUrl && (
-                    <track
-                      kind="captions"
-                      src={selectedProject.captionsUrl}
-                      srcLang="en"
-                      label="English"
-                      default
-                    />
+                <>
+                  <video
+                    ref={modalVideoRef}
+                    autoPlay={!isMobile}
+                    muted
+                    loop
+                    playsInline
+                    controls={!isMobile}
+                    crossOrigin="anonymous"
+                    className="w-full h-full object-contain bg-black"
+                    onClick={handleVideoClick}
+                  >
+                    {selectedProject.captionsUrl && (
+                      <track
+                        kind="captions"
+                        src={selectedProject.captionsUrl}
+                        srcLang="en"
+                        label="English"
+                        default
+                      />
+                    )}
+                  </video>
+                  {isMobile && isVideoPaused && (
+                    <div
+                      className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer"
+                      onClick={handleVideoClick}
+                    >
+                      <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                        <svg
+                          className="w-8 h-8 text-white"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      </div>
+                    </div>
                   )}
-                </video>
+                </>
               ) : (
                 <img
                   src={selectedProject.previewUrl}
