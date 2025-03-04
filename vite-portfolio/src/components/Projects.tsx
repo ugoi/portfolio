@@ -17,10 +17,17 @@ const projects: Project[] = [
   {
     id: 1,
     title: "Matcha",
-    shortDescription: "Dating app",
+    shortDescription: "Dating platform",
     detailedDescription:
-      "A modern dating app that connects people based on real-time location and shared interests. Offers robust privacy settings and a clean, intuitive interface for users seeking meaningful connections.",
-    technologies: ["Express", "React", "TypeScript", "PostgreSQL"],
+      "A full-featured dating platform with real-time matching and communication. Features include user profiles with photos and interests, GPS-based location matching, real-time chat, and notifications. Built with modern web technologies and robust security measures.",
+    technologies: [
+      "Express",
+      "React",
+      "TypeScript",
+      "PostgreSQL",
+      "WebSocket",
+      "OAuth2",
+    ],
     hlsUrl:
       "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/playlist.m3u8",
     previewUrl:
@@ -30,70 +37,109 @@ const projects: Project[] = [
     githubUrl: "https://github.com/ugoi/Matcha",
     captionsUrl: "https://cdn.stefandukic.com/captions/matcha.vtt",
   },
-  // Add more projects here
   {
     id: 2,
-    title: "Matcha",
-    shortDescription: "Dating app",
+    title: "Camagru",
+    shortDescription: "Photo editing platform",
     detailedDescription:
-      "A modern dating app that connects people based on real-time location and shared interests. Offers robust privacy settings and a clean, intuitive interface for users seeking meaningful connections.",
-    technologies: ["Express", "React", "TypeScript", "PostgreSQL"],
+      "A web-based photo editing platform that combines webcam captures with superposable images. Features include user authentication, gallery management, real-time webcam preview, image uploads, and social features like likes and comments. Built with modern web technologies and robust security measures.",
+    technologies: [
+      "React",
+      "TypeScript",
+      "Java",
+      "PostgreSQL",
+      "WebRTC",
+      "Image Processing",
+    ],
     hlsUrl:
-      "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/playlist.m3u8",
+      "https://vz-3314a557-61f.b-cdn.net/fbcc624d-70a8-459d-88eb-4591f98a52a0/playlist.m3u8",
     previewUrl:
-      "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/preview.webp",
+      "https://vz-3314a557-61f.b-cdn.net/fbcc624d-70a8-459d-88eb-4591f98a52a0/preview.webp",
     thumbnailUrl:
-      "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/thumbnail.jpg",
-    githubUrl: "https://github.com/ugoi/Matcha",
-    captionsUrl: "https://cdn.stefandukic.com/captions/matcha.vtt",
+      "https://vz-3314a557-61f.b-cdn.net/fbcc624d-70a8-459d-88eb-4591f98a52a0/thumbnail.jpg",
+    githubUrl: "https://github.com/ugoi/Camagru",
+    captionsUrl: "",
   },
   {
     id: 3,
-    title: "Matcha",
-    shortDescription: "Dating app",
+    title: "Swifty Companion",
+    shortDescription: "42 Student Info App",
     detailedDescription:
-      "A modern dating app that connects people based on real-time location and shared interests. Offers robust privacy settings and a clean, intuitive interface for users seeking meaningful connections.",
-    technologies: ["Express", "React", "TypeScript", "PostgreSQL"],
+      "A mobile application that retrieves and displays information about 42 students using the 42 API. Features include user profiles, skills display, project history, and responsive layouts.",
+    technologies: ["Swift", "iOS", "OAuth2", "REST API"],
     hlsUrl:
-      "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/playlist.m3u8",
+      "https://vz-3314a557-61f.b-cdn.net/7f1f61c7-5c6b-48ab-b50f-ce5d2d4ca804/playlist.m3u8",
     previewUrl:
-      "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/preview.webp",
+      "https://vz-3314a557-61f.b-cdn.net/7f1f61c7-5c6b-48ab-b50f-ce5d2d4ca804/preview.webp",
     thumbnailUrl:
-      "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/thumbnail.jpg",
-    githubUrl: "https://github.com/ugoi/Matcha",
-    captionsUrl: "https://cdn.stefandukic.com/captions/matcha.vtt",
+      "https://vz-3314a557-61f.b-cdn.net/7f1f61c7-5c6b-48ab-b50f-ce5d2d4ca804/thumbnail.jpg",
+    githubUrl: "https://github.com/ugoi/Swifty-Companion",
+    captionsUrl: "",
   },
   {
     id: 4,
-    title: "Matcha",
-    shortDescription: "Dating app",
+    title: "ft_hangouts",
+    shortDescription: "Contact Management App",
     detailedDescription:
-      "A modern dating app that connects people based on real-time location and shared interests. Offers robust privacy settings and a clean, intuitive interface for users seeking meaningful connections.",
-    technologies: ["Express", "React", "TypeScript", "PostgreSQL"],
+      "A mobile application for managing contacts and sending text messages. Features include persistent SQLite storage, bilingual support, conversation history, and customizable UI elements.",
+    technologies: ["Android", "iOS", "SQLite", "Mobile SDK"],
     hlsUrl:
-      "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/playlist.m3u8",
+      "https://vz-3314a557-61f.b-cdn.net/10b2b5b0-bdff-4364-be2b-b1848492d26d/playlist.m3u8",
     previewUrl:
-      "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/preview.webp",
+      "https://vz-3314a557-61f.b-cdn.net/10b2b5b0-bdff-4364-be2b-b1848492d26d/preview.webp",
     thumbnailUrl:
-      "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/thumbnail.jpg",
-    githubUrl: "https://github.com/ugoi/Matcha",
-    captionsUrl: "https://cdn.stefandukic.com/captions/matcha.vtt",
+      "https://vz-3314a557-61f.b-cdn.net/10b2b5b0-bdff-4364-be2b-b1848492d26d/thumbnail.jpg",
+    githubUrl: "https://github.com/ugoi/ft_hangouts",
+    captionsUrl: "",
   },
   {
     id: 5,
-    title: "Matcha",
-    shortDescription: "Dating app",
+    title: "cub3D",
+    shortDescription: "RayCaster Game",
     detailedDescription:
-      "A modern dating app that connects people based on real-time location and shared interests. Offers robust privacy settings and a clean, intuitive interface for users seeking meaningful connections.",
-    technologies: ["Express", "React", "TypeScript", "PostgreSQL"],
+      "A 3D ray-casting game inspired by Wolfenstein 3D. Features include textured walls, smooth movement controls, and a custom map parser. Built using miniLibX graphics library.",
+    technologies: ["C", "miniLibX", "RayCasting", "Graphics"],
     hlsUrl:
-      "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/playlist.m3u8",
+      "https://vz-3314a557-61f.b-cdn.net/4d80c645-4596-45ff-890c-7bbfc9642316/playlist.m3u8",
     previewUrl:
-      "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/preview.webp",
+      "https://vz-3314a557-61f.b-cdn.net/4d80c645-4596-45ff-890c-7bbfc9642316/preview.webp",
     thumbnailUrl:
-      "https://vz-3314a557-61f.b-cdn.net/d96c4e96-e4f7-464c-883c-c9ecb38947b3/thumbnail.jpg",
-    githubUrl: "https://github.com/ugoi/Matcha",
-    captionsUrl: "https://cdn.stefandukic.com/captions/matcha.vtt",
+      "https://vz-3314a557-61f.b-cdn.net/4d80c645-4596-45ff-890c-7bbfc9642316/thumbnail.jpg",
+    githubUrl: "https://github.com/ugoi/cub3d",
+    captionsUrl: "",
+  },
+  {
+    id: 6,
+    title: "ft_transcendence",
+    shortDescription: "Multiplayer Arcade Game",
+    detailedDescription:
+      "A multiplayer online game project that combines classic arcade games like Pong and Breakout with modern features. Includes special abilities, power-ups, leveling system, real-time matches, ranking system, and matchmaking functionality.",
+    technologies: [
+      "NestJS",
+      "React",
+      "Docker",
+      "PostgreSQL",
+      "WebSocket",
+      "TypeScript",
+    ],
+    hlsUrl: "",
+    previewUrl: "https://cdn.stefandukic.com/images/ft-transcendence-web.png",
+    thumbnailUrl: "https://cdn.stefandukic.com/images/ft-transcendence-web.png",
+    githubUrl: "https://github.com/FVNRLS/ft_transcendence",
+    captionsUrl: "",
+  },
+  {
+    id: 7,
+    title: "ft_irc",
+    shortDescription: "IRC Server",
+    detailedDescription:
+      "A robust Internet Relay Chat server implementation in C++98. Features include multi-client support, channel management, private messaging, operator commands, and non-blocking I/O operations. Built with modern networking practices and strict protocol compliance.",
+    technologies: ["C++98", "TCP/IP", "Socket Programming", "Non-blocking I/O"],
+    hlsUrl: "",
+    previewUrl: "https://cdn.stefandukic.com/images/ft-irc-web.png",
+    thumbnailUrl: "https://cdn.stefandukic.com/images/ft-irc-web.png",
+    githubUrl: "https://github.com/Qfinel/42School_ft_irc",
+    captionsUrl: "",
   },
 ];
 
@@ -285,13 +331,15 @@ export default function Projects() {
                     loadedVideos.has(project.id) ? "opacity-100" : "opacity-0"
                   }`}
                 >
-                  <track
-                    kind="captions"
-                    src={project.captionsUrl}
-                    srcLang="en"
-                    label="English"
-                    default
-                  />
+                  {project.captionsUrl && (
+                    <track
+                      kind="captions"
+                      src={project.captionsUrl}
+                      srcLang="en"
+                      label="English"
+                      default
+                    />
+                  )}
                 </video>
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent">
@@ -319,24 +367,34 @@ export default function Projects() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="aspect-video rounded-xl overflow-hidden mb-6">
-              <video
-                ref={modalVideoRef}
-                autoPlay
-                muted
-                loop
-                playsInline
-                controls
-                crossOrigin="anonymous"
-                className="w-full h-full object-cover"
-              >
-                <track
-                  kind="captions"
-                  src={selectedProject.captionsUrl}
-                  srcLang="en"
-                  label="English"
-                  default
+              {selectedProject.hlsUrl ? (
+                <video
+                  ref={modalVideoRef}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  controls
+                  crossOrigin="anonymous"
+                  className="w-full h-full object-contain bg-black"
+                >
+                  {selectedProject.captionsUrl && (
+                    <track
+                      kind="captions"
+                      src={selectedProject.captionsUrl}
+                      srcLang="en"
+                      label="English"
+                      default
+                    />
+                  )}
+                </video>
+              ) : (
+                <img
+                  src={selectedProject.previewUrl}
+                  alt={`${selectedProject.title} preview`}
+                  className="w-full h-full object-contain bg-black"
                 />
-              </video>
+              )}
             </div>
 
             <h3 className="text-2xl font-bold mb-2">{selectedProject.title}</h3>
