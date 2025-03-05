@@ -151,6 +151,7 @@ export default function Projects() {
   const videoRefs = useRef<{ [key: number]: HTMLVideoElement }>({});
   const modalVideoRef = useRef<HTMLVideoElement>(null);
   const [loadedVideos, setLoadedVideos] = useState<Set<number>>(new Set());
+  const videoTimestampsRef = useRef<{ [key: number]: number }>({});
   const [isMobile, setIsMobile] = useState(false);
   const [isVideoPaused, setIsVideoPaused] = useState(true);
 
@@ -189,6 +190,10 @@ export default function Projects() {
                 hls.loadSource(projects[projectId - 1].hlsUrl);
                 hls.attachMedia(video);
                 hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                  // Resume from timestamp if exists, otherwise play from start
+                  if (videoTimestampsRef.current[projectId]) {
+                    video.currentTime = videoTimestampsRef.current[projectId];
+                  }
                   video.play().catch(() => {});
                 });
 
@@ -196,15 +201,31 @@ export default function Projects() {
                 video.addEventListener("playing", () => {
                   setLoadedVideos((prev) => new Set([...prev, projectId]));
                 });
+
+                // Track time when video is paused
+                video.addEventListener("pause", () => {
+                  videoTimestampsRef.current[projectId] = video.currentTime;
+                  // remove video from loadedVideos
+                  setLoadedVideos((prev) => {
+                    const newSet = new Set(prev);
+                    newSet.delete(projectId);
+                    return newSet;
+                  });
+                });
               }
             } catch (error) {
               console.error("Error loading HLS:", error);
             }
+          } else {
+            // When video leaves viewport, pause it
+            video.pause();
           }
         });
       },
       {
         threshold: 0.1,
+        root: scrollContainerRef.current,
+        rootMargin: "100px",
       }
     );
 

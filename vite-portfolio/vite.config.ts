@@ -27,4 +27,8 @@ export default defineConfig({
     },
     reportCompressedSize: false, // Speeds up build
   },
+  server: {
+    host: true, // Listen on all network interfaces
+    port: 5173,
+  },
 });
