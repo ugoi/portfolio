@@ -1,12 +1,28 @@
-import { useState, lazy, Suspense } from "react";
+import { useState, lazy, Suspense, useEffect } from "react";
 
 // Lazy load the Projects component
 const Projects = lazy(() => import("./components/Projects"));
+const Experience = lazy(() => import("./components/Experience"));
 
 function App() {
   // Animation states
   const [hasInteracted, setHasInteracted] = useState(false);
   const [isEmojiFlagHovered, setIsEmojiFlagHovered] = useState(false);
+  const [introOpacity, setIntroOpacity] = useState(1);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      const threshold = 1; // 1px threshold
+      const shouldBeVisible = currentScrollY < threshold;
+
+      // Immediately set the target opacity without animation
+      setIntroOpacity(shouldBeVisible ? 1 : 0);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text-primary)]">
@@ -94,7 +110,13 @@ function App() {
       <div className="max-w-[1200px] mx-auto">
         {/* Intro Section with constrained width */}
         <div className="max-w-[960px] mx-auto px-8 md:px-6">
-          <section className="pt-8 md:pt-60 pb-18">
+          <section
+            className="pt-8 md:pt-60 pb-18 transition-[opacity_200ms_ease-in-out]"
+            style={{
+              opacity: introOpacity,
+              transitionDuration: introOpacity === 0 ? "1000ms" : "200ms",
+            }}
+          >
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8 md:gap-0">
               <div className="block md:hidden">
                 <div className="relative w-[175px] h-[175px] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)] rounded-xl">
@@ -231,7 +253,7 @@ function App() {
           </section>
         </div>
 
-        {/* Add the Projects section with Suspense */}
+        {/* Projects Section */}
         <Suspense
           fallback={
             <section className="md:py-12 relative">
@@ -263,6 +285,52 @@ function App() {
         >
           <Projects />
         </Suspense>
+
+        {/* Experience Section */}
+        <Suspense
+          fallback={
+            <section className="py-20 relative">
+              <div className="max-w-[960px] mx-auto px-8 md:px-6">
+                <div className="flex justify-center mb-12">
+                  <div className="bg-white/5 rounded-full p-1">
+                    <div className="px-6 py-2 rounded-full bg-white/10 animate-pulse"></div>
+                    <div className="px-6 py-2 rounded-full bg-white/10 animate-pulse"></div>
+                  </div>
+                </div>
+                <div className="space-y-8">
+                  {[1, 2, 3].map((index) => (
+                    <div key={index} className="relative pl-24">
+                      <div className="absolute left-0 w-16 h-16 rounded-full bg-white/5 animate-pulse"></div>
+                      <div className="space-y-2">
+                        <div className="h-4 w-32 bg-white/5 rounded animate-pulse"></div>
+                        <div className="h-6 w-48 bg-white/5 rounded animate-pulse"></div>
+                        <div className="h-5 w-36 bg-white/5 rounded animate-pulse"></div>
+                        <div className="space-y-2">
+                          <div className="h-4 w-full bg-white/5 rounded animate-pulse"></div>
+                          <div className="h-4 w-3/4 bg-white/5 rounded animate-pulse"></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+          }
+        >
+          <Experience />
+        </Suspense>
+
+        {/* Get in Touch Section */}
+        <section className="min-h-screen flex items-center justify-center relative">
+          <div className="max-w-[960px] mx-auto px-8 md:px-6">
+            <div className="flex items-center justify-center gap-4">
+              <div className="text-[42px]">👨‍💻</div>
+              <h2 className="text-4xl font-bold bg-gradient-to-r from-white/90 to-white/60 bg-clip-text text-transparent">
+                get in touch
+              </h2>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   );
