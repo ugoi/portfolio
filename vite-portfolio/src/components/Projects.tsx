@@ -299,17 +299,30 @@ export default function Projects() {
   }, [selectedProject, isMobile]);
 
   const handleVideoClick = async () => {
+    console.log("handleVideoClick");
     if (!isMobile) return;
 
     const video = modalVideoRef.current;
     if (!video) return;
 
     try {
-      if (!document.fullscreenElement) {
-        await video.requestFullscreen();
+      if (
+        !document.fullscreenElement &&
+        !(video as any).webkitDisplayingFullscreen
+      ) {
+        // Try different fullscreen methods for better iOS support
+        if ((video as any).webkitEnterFullscreen) {
+          (video as any).webkitEnterFullscreen();
+        } else if (video.requestFullscreen) {
+          await video.requestFullscreen();
+        }
         await video.play();
       } else {
-        await document.exitFullscreen();
+        if ((video as any).webkitExitFullscreen) {
+          (video as any).webkitExitFullscreen();
+        } else if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        }
         video.pause();
       }
     } catch (error) {
