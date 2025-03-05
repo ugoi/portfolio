@@ -373,9 +373,10 @@ export default function Projects() {
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
-          className="flex overflow-x-auto hidescrollbar
+          className="flex overflow-x-auto md:hidescrollbar
                     md:py-22 md:bg-[rgb(18,18,18)] md:rounded-[60px] md:border md:border-white/[0.08] 
-                    md:shadow-[0_0_40px_rgb(10,10,10),0_0_80px_rgb(5,5,5),0_0_120px_rgb(0,0,0)] relative"
+                    md:shadow-[0_0_40px_rgb(10,10,10),0_0_80px_rgb(5,5,5),0_0_120px_rgb(0,0,0)] relative
+                    scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent"
         >
           <div
             className="shrink-0 w-[30px] md:w-[88px]"
