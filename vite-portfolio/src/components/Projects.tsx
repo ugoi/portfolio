@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import fullscreen from "../utils/fullscreen";
 
 interface Project {
   id: number;
@@ -241,7 +242,7 @@ export default function Projects() {
     };
   }, []);
 
-  // Update modal video effect to also use dynamic import
+  // Update the fullscreen change handler to use our wrapper
   useEffect(() => {
     if (selectedProject && modalVideoRef.current) {
       const video = modalVideoRef.current;
@@ -266,7 +267,6 @@ export default function Projects() {
               }
             });
           } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-            // For Safari which has native HLS support
             video.src = selectedProject.hlsUrl;
             if (!isMobile) {
               video.play().catch(() => {});
@@ -279,19 +279,16 @@ export default function Projects() {
 
       initializeHls();
 
-      // Handle fullscreen changes
+      // Handle fullscreen changes using our wrapper
       const handleFullscreenChange = () => {
-        if (!document.fullscreenElement) {
+        if (!fullscreen.element) {
           video.pause();
         }
       };
 
-      document.addEventListener("fullscreenchange", handleFullscreenChange);
+      fullscreen.addEventListener(handleFullscreenChange);
       return () => {
-        document.removeEventListener(
-          "fullscreenchange",
-          handleFullscreenChange
-        );
+        fullscreen.removeEventListener(handleFullscreenChange);
         video.removeEventListener("play", handlePlay);
         video.removeEventListener("pause", handlePause);
       };
@@ -306,23 +303,11 @@ export default function Projects() {
     if (!video) return;
 
     try {
-      if (
-        !document.fullscreenElement &&
-        !(video as any).webkitDisplayingFullscreen
-      ) {
-        // Try different fullscreen methods for better iOS support
-        if ((video as any).webkitEnterFullscreen) {
-          (video as any).webkitEnterFullscreen();
-        } else if (video.requestFullscreen) {
-          await video.requestFullscreen();
-        }
+      if (!fullscreen.element) {
+        await fullscreen.request(video);
         await video.play();
       } else {
-        if ((video as any).webkitExitFullscreen) {
-          (video as any).webkitExitFullscreen();
-        } else if (document.exitFullscreen) {
-          await document.exitFullscreen();
-        }
+        await fullscreen.exit();
         video.pause();
       }
     } catch (error) {
