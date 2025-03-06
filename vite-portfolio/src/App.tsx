@@ -1,4 +1,5 @@
-import { useState, lazy, Suspense, useEffect } from "react";
+import { useState, lazy, Suspense, useEffect, useRef } from "react";
+import { useIsMobile } from "./hooks/useIsMobile";
 
 // Lazy load the Projects component
 const Projects = lazy(() => import("./components/Projects"));
@@ -10,6 +11,13 @@ function App() {
   const [isEmojiFlagHovered, setIsEmojiFlagHovered] = useState(false);
   const [introOpacity, setIntroOpacity] = useState(1);
 
+  // Use the custom hook for mobile detection
+  const isMobile = useIsMobile();
+
+  // Refs for parallax sections
+  const projectsRef = useRef<HTMLDivElement>(null);
+  const experienceRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
@@ -18,11 +26,28 @@ function App() {
 
       // Immediately set the target opacity without animation
       setIntroOpacity(shouldBeVisible ? 1 : 0);
+
+      // Apply parallax effect to Projects and Experience sections
+      if (projectsRef.current) {
+        // Use slower speed on mobile
+        const speed = isMobile ? -1.05 : -1.5;
+        projectsRef.current.style.transform = `translateY(${
+          currentScrollY * (speed + 1)
+        }px)`;
+      }
+
+      if (experienceRef.current) {
+        // Also adjust this speed for mobile
+        const speed = isMobile ? -1.05 : -1.5;
+        experienceRef.current.style.transform = `translateY(${
+          currentScrollY * (speed + 1)
+        }px)`;
+      }
     };
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [isMobile]);
 
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text-primary)]">
@@ -253,72 +278,85 @@ function App() {
           </section>
         </div>
 
-        {/* Projects Section */}
-        <Suspense
-          fallback={
-            <section className="md:py-12 relative">
-              <div className="max-w-[1104px] mx-auto">
-                <div className="flex overflow-x-auto hidescrollbar md:py-22 md:bg-[rgb(18,18,18)] md:rounded-[60px] md:border md:border-white/[0.08] md:shadow-[0_0_40px_rgb(10,10,10),0_0_80px_rgb(5,5,5),0_0_120px_rgb(0,0,0)] relative">
-                  <div
-                    className="shrink-0 w-[30px] md:w-[88px]"
-                    aria-hidden="true"
-                  ></div>
-                  {[1, 2, 3].map((index) => (
-                    <div
-                      key={index}
-                      className={`min-w-[220px] md:min-w-[266px] h-[450px] md:h-[575px] relative rounded-[20px] overflow-hidden
-                               bg-white/[0.03] animate-pulse my-2 ${
-                                 index !== 1 ? "ml-4 md:ml-12" : ""
-                               }`}
-                    >
-                      <div className="absolute bottom-6 left-5 w-3/4">
-                        <div className="h-6 bg-white/[0.07] rounded mb-2"></div>
-                        <div className="h-4 bg-white/[0.07] rounded w-2/3"></div>
-                      </div>
+        {/* Projects Section - only wrap the non-modal content in parallax */}
+        <div className="relative">
+          {/* Parallax wrapper */}
+          <div ref={projectsRef} className="relative will-change-transform">
+            <Suspense
+              fallback={
+                <section className="md:py-12 relative">
+                  <div className="max-w-[1104px] mx-auto">
+                    <div className="flex overflow-x-auto hidescrollbar md:py-22 md:bg-[rgb(18,18,18)] md:rounded-[60px] md:border md:border-white/[0.08] md:shadow-[0_0_40px_rgb(10,10,10),0_0_80px_rgb(5,5,5),0_0_120px_rgb(0,0,0)] relative">
+                      <div
+                        className="shrink-0 w-[30px] md:w-[88px]"
+                        aria-hidden="true"
+                      ></div>
+                      {[1, 2, 3].map((index) => (
+                        <div
+                          key={index}
+                          className={`min-w-[220px] md:min-w-[266px] h-[450px] md:h-[575px] relative rounded-[20px] overflow-hidden
+                                   bg-white/[0.03] animate-pulse my-2 ${
+                                     index !== 1 ? "ml-4 md:ml-12" : ""
+                                   }`}
+                        >
+                          <div className="absolute bottom-6 left-5 w-3/4">
+                            <div className="h-6 bg-white/[0.07] rounded mb-2"></div>
+                            <div className="h-4 bg-white/[0.07] rounded w-2/3"></div>
+                          </div>
+                        </div>
+                      ))}
+                      <div
+                        className="shrink-0 w-[88px]"
+                        aria-hidden="true"
+                      ></div>
                     </div>
-                  ))}
-                  <div className="shrink-0 w-[88px]" aria-hidden="true"></div>
-                </div>
-              </div>
-            </section>
-          }
-        >
-          <Projects />
-        </Suspense>
+                  </div>
+                </section>
+              }
+            >
+              <Projects />
+            </Suspense>
+          </div>
+        </div>
 
         {/* Experience Section */}
-        <Suspense
-          fallback={
-            <section className="py-20 relative">
-              <div className="max-w-[960px] mx-auto px-8 md:px-6">
-                <div className="flex justify-center mb-12">
-                  <div className="bg-white/5 rounded-full p-1">
-                    <div className="px-6 py-2 rounded-full bg-white/10 animate-pulse"></div>
-                    <div className="px-6 py-2 rounded-full bg-white/10 animate-pulse"></div>
-                  </div>
-                </div>
-                <div className="space-y-8">
-                  {[1, 2, 3].map((index) => (
-                    <div key={index} className="relative pl-24">
-                      <div className="absolute left-0 w-16 h-16 rounded-full bg-white/5 animate-pulse"></div>
-                      <div className="space-y-2">
-                        <div className="h-4 w-32 bg-white/5 rounded animate-pulse"></div>
-                        <div className="h-6 w-48 bg-white/5 rounded animate-pulse"></div>
-                        <div className="h-5 w-36 bg-white/5 rounded animate-pulse"></div>
-                        <div className="space-y-2">
-                          <div className="h-4 w-full bg-white/5 rounded animate-pulse"></div>
-                          <div className="h-4 w-3/4 bg-white/5 rounded animate-pulse"></div>
-                        </div>
+        <div className="relative">
+          {/* Parallax wrapper */}
+          <div ref={experienceRef} className="relative will-change-transform">
+            <Suspense
+              fallback={
+                <section className="py-20 relative">
+                  <div className="max-w-[960px] mx-auto px-8 md:px-6">
+                    <div className="flex justify-center mb-12">
+                      <div className="bg-white/5 rounded-full p-1">
+                        <div className="px-6 py-2 rounded-full bg-white/10 animate-pulse"></div>
+                        <div className="px-6 py-2 rounded-full bg-white/10 animate-pulse"></div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            </section>
-          }
-        >
-          <Experience />
-        </Suspense>
+                    <div className="space-y-8">
+                      {[1, 2, 3].map((index) => (
+                        <div key={index} className="relative pl-24">
+                          <div className="absolute left-0 w-16 h-16 rounded-full bg-white/5 animate-pulse"></div>
+                          <div className="space-y-2">
+                            <div className="h-4 w-32 bg-white/5 rounded animate-pulse"></div>
+                            <div className="h-6 w-48 bg-white/5 rounded animate-pulse"></div>
+                            <div className="h-5 w-36 bg-white/5 rounded animate-pulse"></div>
+                            <div className="space-y-2">
+                              <div className="h-4 w-full bg-white/5 rounded animate-pulse"></div>
+                              <div className="h-4 w-3/4 bg-white/5 rounded animate-pulse"></div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+              }
+            >
+              <Experience />
+            </Suspense>
+          </div>
+        </div>
 
         {/* Get in Touch Section */}
         <section className="min-h-screen flex items-center justify-center relative">

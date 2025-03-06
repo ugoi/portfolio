@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import fullscreen from "../utils/fullscreen";
+import { useIsMobile } from "../hooks/useIsMobile";
 
 interface Project {
   id: number;
@@ -153,25 +155,26 @@ export default function Projects() {
   const modalVideoRef = useRef<HTMLVideoElement>(null);
   const [loadedVideos, setLoadedVideos] = useState<Set<number>>(new Set());
   const videoTimestampsRef = useRef<{ [key: number]: number }>({});
-  const [isMobile, setIsMobile] = useState(false);
+
+  // Use the custom hook instead of local state and effect
+  const isMobile = useIsMobile(768);
+
   const [isVideoPaused, setIsVideoPaused] = useState(true);
 
+  // Disable body scrolling when modal is open
   useEffect(() => {
-    // Check if device is mobile
-    const checkMobile = () => {
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-      // Consider it mobile if either width or height is less than 768px
-      setIsMobile(width < 768 || height < 768);
-    };
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    window.addEventListener("orientationchange", checkMobile);
-    return () => {
-      window.removeEventListener("resize", checkMobile);
-      window.removeEventListener("orientationchange", checkMobile);
-    };
-  }, []);
+    if (selectedProject) {
+      // Save the current overflow style
+      const originalOverflow = document.body.style.overflow;
+      // Disable scrolling on the body
+      document.body.style.overflow = "hidden";
+
+      // Re-enable scrolling when component unmounts or modal closes
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [selectedProject]);
 
   useEffect(() => {
     // Initialize HLS for each video when they become visible
@@ -365,32 +368,35 @@ export default function Projects() {
 
   return (
     <section className="md:py-12 relative">
-      <h2 className="sr-only">My Projects</h2>
-      {/* Scroll Arrows */}
-      {showLeftArrow && (
-        <button
-          onClick={() => scroll("left")}
-          className="hidden md:block absolute left-[7%] top-1/2 z-10 bg-[#0E1011]/80 rounded-full p-4 backdrop-blur-sm"
-        >
-          <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
-          </svg>
-        </button>
-      )}
-
-      {showRightArrow && (
-        <button
-          onClick={() => scroll("right")}
-          className="hidden md:block absolute right-[7%] top-1/2 z-10 bg-[#0E1011]/80 rounded-full p-4 backdrop-blur-sm"
-        >
-          <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z" />
-          </svg>
-        </button>
-      )}
-
-      {/* Projects Container */}
       <div className="max-w-[1104px] mx-auto">
+        {/* Scroll Arrows */}
+        <div className="relative">
+          {showLeftArrow && (
+            <button
+              onClick={() => scroll("left")}
+              className="hidden md:block absolute left-[7%] top-1/2 z-10 bg-[#0E1011]/80 rounded-full p-4 backdrop-blur-sm"
+              aria-label="Scroll left"
+            >
+              <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+              </svg>
+            </button>
+          )}
+
+          {showRightArrow && (
+            <button
+              onClick={() => scroll("right")}
+              className="hidden md:block absolute right-[7%] top-1/2 z-10 bg-[#0E1011]/80 rounded-full p-4 backdrop-blur-sm"
+              aria-label="Scroll right"
+            >
+              <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        {/* Projects Container */}
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
@@ -462,99 +468,136 @@ export default function Projects() {
         </div>
       </div>
 
-      {/* Project Modal */}
-      {selectedProject && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 animate-fade-in"
-          onClick={() => setSelectedProject(null)}
-        >
+      {/* Project Modal - render with portal so it's not affected by parallax */}
+      {selectedProject &&
+        createPortal(
           <div
-            className="bg-[#0E1011] rounded-2xl max-w-3xl w-full p-6 animate-fade-in overflow-y-auto max-h-[90vh]"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 animate-fade-in"
+            onClick={() => setSelectedProject(null)}
           >
-            <div className="relative mb-6">
-              <div className="aspect-video md:aspect-video rounded-xl overflow-hidden">
-                {selectedProject.hlsUrl ? (
-                  <>
-                    <video
-                      ref={modalVideoRef}
-                      autoPlay={!isMobile}
-                      muted
-                      loop
-                      playsInline
-                      controls={!isMobile}
-                      crossOrigin="anonymous"
-                      className="w-full h-full object-contain bg-black"
-                      onClick={handleVideoClick}
-                    >
-                      {selectedProject.captionsUrl && (
-                        <track
-                          kind="captions"
-                          src={selectedProject.captionsUrl}
-                          srcLang="en"
-                          label="English"
-                          default
-                        />
-                      )}
-                    </video>
-                    {isMobile && isVideoPaused && (
-                      <div
-                        className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer"
+            <div
+              className="bg-[#0E1011] rounded-2xl max-w-3xl w-full p-6 animate-fade-in overflow-y-auto max-h-[90vh] relative"
+              style={{ color: "var(--color-text-primary)" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close button */}
+              <button
+                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors z-10"
+                onClick={() => setSelectedProject(null)}
+                aria-label="Close modal"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  style={{ color: "var(--color-text-primary)" }}
+                >
+                  <path
+                    d="M1 1L13 13M1 13L13 1"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
+
+              <div className="relative mb-6">
+                <div className="aspect-video md:aspect-video rounded-xl overflow-hidden">
+                  {selectedProject.hlsUrl ? (
+                    <>
+                      <video
+                        ref={modalVideoRef}
+                        autoPlay={!isMobile}
+                        muted
+                        loop
+                        playsInline
+                        controls={!isMobile}
+                        crossOrigin="anonymous"
+                        className="w-full h-full object-contain bg-black"
                         onClick={handleVideoClick}
                       >
-                        <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                          <svg
-                            className="w-8 h-8 text-white"
-                            fill="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path d="M8 5v14l11-7z" />
-                          </svg>
+                        {selectedProject.captionsUrl && (
+                          <track
+                            kind="captions"
+                            src={selectedProject.captionsUrl}
+                            srcLang="en"
+                            label="English"
+                            default
+                          />
+                        )}
+                      </video>
+                      {isMobile && isVideoPaused && (
+                        <div
+                          className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer"
+                          onClick={handleVideoClick}
+                        >
+                          <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                            <svg
+                              className="w-8 h-8 text-white"
+                              fill="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path d="M8 5v14l11-7z" />
+                            </svg>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <img
-                    src={selectedProject.previewUrl}
-                    alt={`${selectedProject.title} preview`}
-                    className="w-full h-full object-contain bg-black"
-                  />
-                )}
+                      )}
+                    </>
+                  ) : (
+                    <img
+                      src={selectedProject.previewUrl}
+                      alt={`${selectedProject.title} preview`}
+                      className="w-full h-full object-contain bg-black"
+                    />
+                  )}
+                </div>
               </div>
-            </div>
 
-            <h3 className="text-2xl font-bold mb-2">{selectedProject.title}</h3>
-            <p className="text-gray-400 mb-4">
-              {selectedProject.detailedDescription}
-            </p>
+              <h3
+                className="text-2xl font-bold mb-2"
+                style={{ color: "var(--color-text-primary)" }}
+              >
+                {selectedProject.title}
+              </h3>
+              <p className="text-gray-400 mb-4">
+                {selectedProject.detailedDescription}
+              </p>
 
-            <div className="flex flex-wrap gap-2 mb-6">
-              {selectedProject.technologies.map((tech) => (
-                <span
-                  key={tech}
-                  className="px-3 py-1 bg-white/10 rounded-full text-sm"
+              <div className="flex flex-wrap gap-2 mb-6">
+                {selectedProject.technologies.map((tech) => (
+                  <span
+                    key={tech}
+                    className="px-3 py-1 bg-white/10 rounded-full text-sm"
+                    style={{ color: "var(--color-text-primary)" }}
+                  >
+                    {tech}
+                  </span>
+                ))}
+              </div>
+
+              <a
+                href={selectedProject.githubUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 
+                     transition-colors rounded-full px-4 py-2"
+                style={{ color: "var(--color-text-primary)" }}
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  {tech}
-                </span>
-              ))}
+                  <path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z" />
+                </svg>
+                Source
+              </a>
             </div>
-
-            <a
-              href={selectedProject.githubUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 
-                       transition-colors rounded-full px-4 py-2"
-            >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z" />
-              </svg>
-              Source
-            </a>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </section>
   );
 }
