@@ -19,7 +19,7 @@ const workExperience: TimelineEntry[] = [
     company: "Audi AG",
     role: "Software Engineer",
     description: [
-      "Led design and development of REST APIs using RAML to optimize data exchange processes across financial systems",
+      "Designed REST APIs using RAML and developed complete backend services to enable application integration across financial systems",
       "Managed CI/CD pipelines and documented APIs on Confluence, improving team adoption and maintenance efficiency",
       "Streamlined research and analytics workflows by optimizing business logic and creating data visualizations",
       "Leveraged test-driven development to deliver robust, scalable software in conjunction with Agile teams",
