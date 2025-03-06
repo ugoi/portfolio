@@ -281,8 +281,21 @@ export default function Projects() {
 
       // Handle fullscreen changes using our wrapper
       const handleFullscreenChange = () => {
+        // When exiting fullscreen
         if (!fullscreen.element) {
+          // Always pause when exiting fullscreen
           video.pause();
+        } else {
+          // When entering fullscreen on mobile, we attempt to play
+          // This helps with Chrome on Android (including OnePlus devices)
+          if (isMobile) {
+            // Small delay to let the browser complete the fullscreen transition
+            setTimeout(() => {
+              video.play().catch((error) => {
+                console.error("Error playing after fullscreen change:", error);
+              });
+            }, 100);
+          }
         }
       };
 
@@ -304,8 +317,16 @@ export default function Projects() {
 
     try {
       if (!fullscreen.element) {
+        // Request fullscreen first
         await fullscreen.request(video);
-        await video.play();
+
+        // For Chrome on Android (particularly OnePlus), we need to add a small delay
+        // between requesting fullscreen and playing the video
+        setTimeout(() => {
+          video.play().catch((error) => {
+            console.error("Error playing video after fullscreen:", error);
+          });
+        }, 100);
       } else {
         await fullscreen.exit();
         video.pause();
