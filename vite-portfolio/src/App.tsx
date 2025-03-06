@@ -10,6 +10,7 @@ function App() {
   const [hasInteracted, setHasInteracted] = useState(false);
   const [isEmojiFlagHovered, setIsEmojiFlagHovered] = useState(false);
   const [introOpacity, setIntroOpacity] = useState(1);
+  const [navBorderThickness, setNavBorderThickness] = useState(0);
 
   // Use the custom hook for mobile detection
   const isMobile = useIsMobile();
@@ -43,6 +44,10 @@ function App() {
           currentScrollY * (speed + 1)
         }px)`;
       }
+
+      // Check if we've scrolled past 1/4 of the page height to trigger navbar border
+      const triggerHeight = window.innerHeight / 4;
+      setNavBorderThickness(currentScrollY > triggerHeight ? 2 : 0);
     };
 
     window.addEventListener("scroll", handleScroll);
@@ -53,7 +58,13 @@ function App() {
     <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text-primary)]">
       {/* Navbar */}
       <div className="sticky top-0 z-50 flex justify-center px-3 pt-3 md:px-0 md:pt-8">
-        <nav className="w-full max-w-[960px] flex items-center justify-between bg-[var(--color-navbar)] backdrop-blur-sm rounded-[var(--radius-navbar)] px-[var(--spacing-navbar)] h-[var(--height-navbar)]">
+        <nav
+          className="w-full max-w-[960px] flex items-center justify-between bg-[var(--color-navbar)] backdrop-blur-sm rounded-[var(--radius-navbar)] px-[var(--spacing-navbar)] h-[var(--height-navbar)]"
+          style={{
+            border: `${navBorderThickness}px solid var(--color-border)`,
+            transition: "border-width 500ms ease-in-out",
+          }}
+        >
           <div className="font-['Inter',sans-serif] text-[12px] md:text-[14px] tracking-[2px] leading-[160%] text-[var(--color-text-muted)] uppercase hover:text-[var(--color-hover)] transition-colors">
             stefan dukic
           </div>

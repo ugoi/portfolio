@@ -369,102 +369,117 @@ export default function Projects() {
   return (
     <section className="md:py-12 relative">
       <div className="max-w-[1104px] mx-auto">
-        {/* Scroll Arrows */}
+        {/* Projects Container with overlay controls */}
         <div className="relative">
-          {showLeftArrow && (
-            <button
-              onClick={() => scroll("left")}
-              className="hidden md:block absolute left-[7%] top-1/2 z-10 bg-[#0E1011]/80 rounded-full p-4 backdrop-blur-sm"
-              aria-label="Scroll left"
-            >
-              <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
-              </svg>
-            </button>
-          )}
-
-          {showRightArrow && (
-            <button
-              onClick={() => scroll("right")}
-              className="hidden md:block absolute right-[7%] top-1/2 z-10 bg-[#0E1011]/80 rounded-full p-4 backdrop-blur-sm"
-              aria-label="Scroll right"
-            >
-              <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z" />
-              </svg>
-            </button>
-          )}
-        </div>
-
-        {/* Projects Container */}
-        <div
-          ref={scrollContainerRef}
-          onScroll={handleScroll}
-          className="flex overflow-x-auto md:hidescrollbar
-                    md:py-22 md:bg-[rgb(18,18,18)] md:rounded-[60px] md:border md:border-white/[0.08] 
-                    md:shadow-[0_0_40px_rgb(10,10,10),0_0_80px_rgb(5,5,5),0_0_120px_rgb(0,0,0)] relative
-                    scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent"
-        >
+          {/* Projects Container */}
           <div
-            className="shrink-0 w-[30px] md:w-[88px]"
-            aria-hidden="true"
-          ></div>
-          {projects.map((project, index) => (
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            className="flex overflow-x-auto md:hidescrollbar
+                     md:py-22 md:bg-[rgb(18,18,18)] md:rounded-[60px] md:border md:border-white/[0.08] 
+                     md:shadow-[0_0_40px_rgb(10,10,10),0_0_80px_rgb(5,5,5),0_0_120px_rgb(0,0,0)] relative
+                     scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent"
+          >
             <div
-              key={project.id}
-              onClick={() => setSelectedProject(project)}
-              className={`min-w-[220px] md:min-w-[266px] h-[450px] md:h-[575px] relative rounded-[20px] overflow-hidden
-                       transform transition-all duration-300 hover:-translate-y-4 hover:scale-105 hover:shadow-2xl
-                       cursor-pointer active:scale-95 my-2 ${
-                         index !== 0 ? "ml-4 md:ml-12" : ""
-                       }`}
-            >
-              <div className="w-full h-full">
-                {/* Preview image that shows while video loads */}
-                <img
-                  src={project.previewUrl}
-                  alt={`${project.title} preview`}
-                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
-                    loadedVideos.has(project.id) ? "opacity-0" : "opacity-100"
-                  }`}
-                  loading="lazy"
-                />
-                <video
-                  ref={(el) => {
-                    if (el) videoRefs.current[project.id] = el;
-                  }}
-                  data-project-id={project.id}
-                  muted
-                  loop
-                  playsInline
-                  crossOrigin="anonymous"
-                  poster={project.thumbnailUrl}
-                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
-                    loadedVideos.has(project.id) ? "opacity-100" : "opacity-0"
-                  }`}
-                >
-                  {project.captionsUrl && (
-                    <track
-                      kind="captions"
-                      src={project.captionsUrl}
-                      srcLang="en"
-                      label="English"
-                      default
-                    />
-                  )}
-                </video>
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent">
-                <div className="absolute bottom-6 left-5">
-                  <h3 className="text-xl font-bold mb-1.5">{project.title}</h3>
-                  <p className="text-sm text-gray-300">
-                    {project.shortDescription}
-                  </p>
+              className="shrink-0 w-[30px] md:w-[88px]"
+              aria-hidden="true"
+            ></div>
+            {projects.map((project, index) => (
+              <div
+                key={project.id}
+                onClick={() => setSelectedProject(project)}
+                className={`min-w-[220px] md:min-w-[266px] h-[450px] md:h-[575px] relative rounded-[20px] overflow-hidden
+                         transform transition-all duration-300 hover:-translate-y-4 hover:scale-105 hover:shadow-2xl
+                         cursor-pointer active:scale-95 my-2 ${
+                           index !== 0 ? "ml-4 md:ml-12" : ""
+                         }`}
+              >
+                <div className="w-full h-full">
+                  {/* Preview image that shows while video loads */}
+                  <img
+                    src={project.previewUrl}
+                    alt={`${project.title} preview`}
+                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
+                      loadedVideos.has(project.id) ? "opacity-0" : "opacity-100"
+                    }`}
+                    loading="lazy"
+                  />
+                  <video
+                    ref={(el) => {
+                      if (el) videoRefs.current[project.id] = el;
+                    }}
+                    data-project-id={project.id}
+                    muted
+                    loop
+                    playsInline
+                    crossOrigin="anonymous"
+                    poster={project.thumbnailUrl}
+                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
+                      loadedVideos.has(project.id) ? "opacity-100" : "opacity-0"
+                    }`}
+                  >
+                    {project.captionsUrl && (
+                      <track
+                        kind="captions"
+                        src={project.captionsUrl}
+                        srcLang="en"
+                        label="English"
+                        default
+                      />
+                    )}
+                  </video>
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent">
+                  <div className="absolute bottom-6 left-5">
+                    <h3 className="text-xl font-bold mb-1.5">
+                      {project.title}
+                    </h3>
+                    <p className="text-sm text-gray-300">
+                      {project.shortDescription}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-          <div className="shrink-0 w-[88px]" aria-hidden="true"></div>
+            ))}
+            <div className="shrink-0 w-[88px]" aria-hidden="true"></div>
+          </div>
+
+          {/* Navigation arrows overlaid using Flexbox for centering */}
+          <div className="absolute inset-y-0 left-[5%] hidden md:flex items-center justify-start">
+            {showLeftArrow && (
+              <button
+                onClick={() => scroll("left")}
+                className="z-10 bg-[#0E1011]/80 rounded-full p-4 backdrop-blur-sm"
+                aria-label="Scroll left"
+              >
+                <svg
+                  className="w-8 h-8"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+                </svg>
+              </button>
+            )}
+          </div>
+
+          <div className="absolute inset-y-0 right-[5%] hidden md:flex items-center justify-end">
+            {showRightArrow && (
+              <button
+                onClick={() => scroll("right")}
+                className="z-10 bg-[#0E1011]/80 rounded-full p-4 backdrop-blur-sm"
+                aria-label="Scroll right"
+              >
+                <svg
+                  className="w-8 h-8"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
