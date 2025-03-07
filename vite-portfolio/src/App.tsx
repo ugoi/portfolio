@@ -103,7 +103,7 @@ function App() {
 
           <div className="flex items-center gap-[var(--spacing-icon-gap)] text-[var(--color-text-muted)]">
             <a
-              href="https://cdn.stefandukic.com/resume.pdf"
+              href="https://cdn.stefandukic.com/resume-one-pager.pdf"
               className="hover:text-[var(--color-hover)] transition-colors"
               target="_blank"
               rel="noopener noreferrer"
