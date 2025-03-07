@@ -20,6 +20,7 @@ function App() {
   const experienceRef = useRef<HTMLDivElement>(null);
   const contactRef = useRef<HTMLDivElement>(null);
   const contactTextRef = useRef<HTMLDivElement>(null);
+  const introRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -30,20 +31,12 @@ function App() {
       // Immediately set the target opacity without animation
       setIntroOpacity(shouldBeVisible ? 1 : 0);
 
-      // Apply parallax effect to Projects and Experience sections
-      if (projectsRef.current) {
-        // Use slower speed on mobile
-        const speed = isMobile ? -1.05 : -1.5;
-        projectsRef.current.style.transform = `translateY(${
-          currentScrollY * (speed + 1)
-        }px)`;
-      }
-
-      if (experienceRef.current) {
-        // Also adjust this speed for mobile
-        const speed = isMobile ? -1.05 : -1.5;
-        experienceRef.current.style.transform = `translateY(${
-          currentScrollY * (speed + 1)
+      // Apply parallax effect to Intro section - slower movement
+      if (introRef.current) {
+        // Use very slow speed for intro section
+        const speed = isMobile ? 1.05 : 1.5;
+        introRef.current.style.transform = `translateY(${
+          currentScrollY * (speed - 1)
         }px)`;
       }
 
@@ -56,7 +49,8 @@ function App() {
         // Calculate how far the section is into the viewport
         // We want the animation to complete when the section is halfway through the viewport
         const sectionHeight = rect.height;
-        const startPoint = windowHeight; // When section first appears at bottom of viewport
+        const topOffset = 300;
+        const startPoint = windowHeight + topOffset; // When section first appears at bottom of viewport
         const endPoint = windowHeight / 2 - sectionHeight / 2; // When section is centered
 
         // Calculate progress (0 to 1)
@@ -176,48 +170,50 @@ function App() {
 
       {/* Content container */}
       <div className="max-w-[1200px] mx-auto">
-        {/* Intro Section with constrained width */}
-        <div className="max-w-[960px] mx-auto px-8 md:px-6">
-          <section
-            className="pt-8 md:pt-60 pb-18 transition-[opacity_200ms_ease-in-out]"
-            style={{
-              opacity: introOpacity,
-              transitionDuration: introOpacity === 0 ? "1000ms" : "200ms",
-            }}
-          >
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8 md:gap-0">
-              <div className="block md:hidden">
-                <div className="relative w-[175px] h-[175px] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)] rounded-xl">
-                  <picture>
-                    <source
-                      srcSet="https://cdn.stefandukic.com/images/stefan-portrait-175.webp"
-                      type="image/webp"
-                      width="175"
-                      height="175"
-                    />
-                    <img
-                      src="https://cdn.stefandukic.com/images/stefan-portrait-175.jpeg"
-                      alt="Photo of Stefan"
-                      className="w-full h-full object-cover rounded-xl bg-[#1a1a1a]"
-                      width="175"
-                      height="175"
-                      loading="eager"
-                      decoding="async"
-                      fetchPriority="high"
-                    />
-                  </picture>
-                  <div className="absolute inset-0 rounded-xl shadow-inner pointer-events-none"></div>
+        {/* Parallax wrapper */}
+        <div ref={introRef} className="relative will-change-transform">
+          {/* Intro Section with constrained width */}
+          <div className="max-w-[960px] mx-auto px-8 md:px-6">
+            <section
+              className="pt-8 md:pt-60 pb-18 transition-[opacity_200ms_ease-in-out]"
+              style={{
+                opacity: introOpacity,
+                transitionDuration: introOpacity === 0 ? "1000ms" : "200ms",
+              }}
+            >
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8 md:gap-0">
+                <div className="block md:hidden">
+                  <div className="relative w-[175px] h-[175px] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)] rounded-xl">
+                    <picture>
+                      <source
+                        srcSet="https://cdn.stefandukic.com/images/stefan-portrait-175.webp"
+                        type="image/webp"
+                        width="175"
+                        height="175"
+                      />
+                      <img
+                        src="https://cdn.stefandukic.com/images/stefan-portrait-175.jpeg"
+                        alt="Photo of Stefan"
+                        className="w-full h-full object-cover rounded-xl bg-[#1a1a1a]"
+                        width="175"
+                        height="175"
+                        loading="eager"
+                        decoding="async"
+                        fetchPriority="high"
+                      />
+                    </picture>
+                    <div className="absolute inset-0 rounded-xl shadow-inner pointer-events-none"></div>
+                  </div>
                 </div>
-              </div>
 
-              <div className="max-w-[500px] animate-slide-from-left">
-                <h1 className="text-5xl font-bold mb-4">
-                  i'm stefan
-                  <span className="ml-2 inline-flex items-center">
-                    <div className="relative inline-block group">
-                      {/* Rotating container for the peace emoji and the serbian flag */}
-                      <div
-                        className={`
+                <div className="max-w-[500px] animate-slide-from-left">
+                  <h1 className="text-5xl font-bold mb-4">
+                    i'm stefan
+                    <span className="ml-2 inline-flex items-center">
+                      <div className="relative inline-block group">
+                        {/* Rotating container for the peace emoji and the serbian flag */}
+                        <div
+                          className={`
                           ${
                             hasInteracted && isEmojiFlagHovered
                               ? "animate-rotate-wiggle-45"
@@ -230,95 +226,96 @@ function App() {
                           }
                           [animation-duration:500ms] cursor-pointer
                         `}
-                        onMouseEnter={() => {
-                          setIsEmojiFlagHovered(true);
-                          setHasInteracted(true);
-                        }}
-                        onMouseLeave={() => setIsEmojiFlagHovered(false)}
-                        onTouchStart={() => {
-                          if (isEmojiFlagHovered === false) {
+                          onMouseEnter={() => {
                             setIsEmojiFlagHovered(true);
-                          } else {
-                            setIsEmojiFlagHovered(false);
-                          }
-                          setHasInteracted(true);
-                        }}
-                      >
-                        {/* Peace Emoji: rotates and fades out when the container is hovered/tapped */}
-                        <span
-                          className={`
+                            setHasInteracted(true);
+                          }}
+                          onMouseLeave={() => setIsEmojiFlagHovered(false)}
+                          onTouchStart={() => {
+                            if (isEmojiFlagHovered === false) {
+                              setIsEmojiFlagHovered(true);
+                            } else {
+                              setIsEmojiFlagHovered(false);
+                            }
+                            setHasInteracted(true);
+                          }}
+                        >
+                          {/* Peace Emoji: rotates and fades out when the container is hovered/tapped */}
+                          <span
+                            className={`
                           block text-[42px] transition-all duration-200 transform 
                           ${isEmojiFlagHovered ? "opacity-0" : "opacity-100"}
                         `}
-                        >
-                          ✌️
-                        </span>
-                        {/* Serbian Flag: fades in when the container is hovered/tapped */}
-                        <span
-                          className={`
+                          >
+                            ✌️
+                          </span>
+                          {/* Serbian Flag: fades in when the container is hovered/tapped */}
+                          <span
+                            className={`
                           absolute inset-0 flex items-center justify-center text-[42px] 
                           pointer-events-none transition-opacity rotate-315 duration-200
                           ${isEmojiFlagHovered ? "opacity-100" : "opacity-0"}
                         `}
-                        >
-                          🇷🇸
-                        </span>
+                          >
+                            🇷🇸
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  </span>
-                </h1>
+                    </span>
+                  </h1>
 
-                <p className="text-xl text-[var(--color-text-secondary)] leading-relaxed">
-                  driven by a desire to build a legacy, i continuously refine
-                  both my full-stack and ai skills through a dedicated
-                  practice–feedback–learn loop{" "}
-                  <svg
-                    className="w-5 h-5 inline-block animate-spin-slow"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path
-                      d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2"
-                      strokeLinecap="round"
-                    />
-                    <path
-                      d="M12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2"
-                      strokeLinecap="round"
-                      strokeOpacity="0.2"
-                    />
-                  </svg>
-                  . today, i develop robust apps that pave the way for
-                  innovative ventures.
-                </p>
-              </div>
+                  <p className="text-xl text-[var(--color-text-secondary)] leading-relaxed">
+                    driven by a desire to build a legacy, i continuously refine
+                    both my full-stack and ai skills through a dedicated
+                    practice–feedback–learn loop{" "}
+                    <svg
+                      className="w-5 h-5 inline-block animate-spin-slow"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path
+                        d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2"
+                        strokeLinecap="round"
+                      />
+                      <path
+                        d="M12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2"
+                        strokeLinecap="round"
+                        strokeOpacity="0.2"
+                      />
+                    </svg>
+                    . today, i develop robust apps that pave the way for
+                    innovative ventures.
+                  </p>
+                </div>
 
-              <div className="hidden md:block transition-all duration-1000 animate-slide-from-right">
-                <div className="relative w-[220px] h-[220px] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)] rounded-xl">
-                  <picture>
-                    <source
-                      srcSet="https://cdn.stefandukic.com/images/stefan-portrait-220.webp"
-                      type="image/webp"
-                      width="220"
-                      height="220"
-                    />
-                    <img
-                      src="https://cdn.stefandukic.com/images/stefan-portrait-220.jpeg"
-                      alt="Photo of Stefan"
-                      className="w-full h-full object-cover rounded-xl bg-[#1a1a1a]"
-                      width="220"
-                      height="220"
-                      loading="eager"
-                      decoding="async"
-                      fetchPriority="high"
-                    />
-                  </picture>
-                  <div className="absolute inset-0 rounded-xl shadow-inner pointer-events-none"></div>
+                <div className="hidden md:block transition-all duration-1000 animate-slide-from-right">
+                  <div className="relative w-[220px] h-[220px] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)] rounded-xl">
+                    <picture>
+                      <source
+                        srcSet="https://cdn.stefandukic.com/images/stefan-portrait-220.webp"
+                        type="image/webp"
+                        width="220"
+                        height="220"
+                      />
+                      <img
+                        src="https://cdn.stefandukic.com/images/stefan-portrait-220.jpeg"
+                        alt="Photo of Stefan"
+                        className="w-full h-full object-cover rounded-xl bg-[#1a1a1a]"
+                        width="220"
+                        height="220"
+                        loading="eager"
+                        decoding="async"
+                        fetchPriority="high"
+                      />
+                    </picture>
+                    <div className="absolute inset-0 rounded-xl shadow-inner pointer-events-none"></div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </section>
+            </section>
+          </div>
         </div>
 
         {/* Projects Section - only wrap the non-modal content in parallax */}

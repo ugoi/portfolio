@@ -1,20 +1,19 @@
 import { useState, useEffect } from "react";
 
 /**
- * Custom hook to detect if the device is mobile based on screen dimensions
- * @param breakpoint - The dimension threshold in pixels (default: 768)
+ * Custom hook to detect if the device is mobile based on screen width
+ * @param breakpoint - The width threshold in pixels (default: 768)
  * @returns boolean indicating if the device is considered mobile
  */
 export function useIsMobile(breakpoint = 768) {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    // Check if device is mobile based on screen dimensions
+    // Check if device is mobile based on screen width only
     const checkMobile = () => {
       const width = window.innerWidth;
-      const height = window.innerHeight;
-      // Consider it mobile if either width or height is less than the breakpoint
-      setIsMobile(width < breakpoint || height < breakpoint);
+      // Consider it mobile if width is less than the breakpoint
+      setIsMobile(width < breakpoint);
     };
 
     // Initial check
