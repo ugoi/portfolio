@@ -18,6 +18,8 @@ function App() {
   // Refs for parallax sections
   const projectsRef = useRef<HTMLDivElement>(null);
   const experienceRef = useRef<HTMLDivElement>(null);
+  const contactRef = useRef<HTMLDivElement>(null);
+  const contactTextRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -43,6 +45,36 @@ function App() {
         experienceRef.current.style.transform = `translateY(${
           currentScrollY * (speed + 1)
         }px)`;
+      }
+
+      // Get in touch section scroll animation
+      if (contactRef.current && contactTextRef.current) {
+        const rect = contactRef.current.getBoundingClientRect();
+        const sectionTop = rect.top;
+        const windowHeight = window.innerHeight;
+
+        // Calculate how far the section is into the viewport
+        // We want the animation to complete when the section is halfway through the viewport
+        const sectionHeight = rect.height;
+        const startPoint = windowHeight; // When section first appears at bottom of viewport
+        const endPoint = windowHeight / 2 - sectionHeight / 2; // When section is centered
+
+        // Calculate progress (0 to 1)
+        let progress = 0;
+        if (sectionTop < startPoint) {
+          progress = Math.min(
+            (startPoint - sectionTop) / (startPoint - endPoint),
+            1
+          );
+        }
+
+        // Use a percentage of the section height as the starting offset
+        // Using 60% of the section height as the initial offset
+        const startingOffset = sectionHeight * 0.5;
+        const translateY = -startingOffset * (1 - progress);
+        contactTextRef.current.style.transform = `translateY(${translateY}px)`;
+        // Force browser to process the style change immediately
+        void contactTextRef.current.offsetHeight;
       }
 
       // Check if we've scrolled past 1/4 of the page height to trigger navbar border
@@ -290,89 +322,90 @@ function App() {
         </div>
 
         {/* Projects Section - only wrap the non-modal content in parallax */}
-        <div className="relative">
-          {/* Parallax wrapper */}
-          <div ref={projectsRef} className="relative will-change-transform">
-            <Suspense
-              fallback={
-                <section className="md:py-12 relative">
-                  <div className="max-w-[1104px] mx-auto">
-                    <div className="flex overflow-x-auto hidescrollbar md:py-22 md:bg-[rgb(18,18,18)] md:rounded-[60px] md:border md:border-white/[0.08] md:shadow-[0_0_40px_rgb(10,10,10),0_0_80px_rgb(5,5,5),0_0_120px_rgb(0,0,0)] relative">
+
+        {/* Parallax wrapper */}
+        <div ref={projectsRef} className="relative will-change-transform">
+          <Suspense
+            fallback={
+              <section className="md:py-12 relative">
+                <div className="max-w-[1104px] mx-auto">
+                  <div className="flex overflow-x-auto hidescrollbar md:py-22 md:bg-[rgb(18,18,18)] md:rounded-[60px] md:border md:border-white/[0.08] md:shadow-[0_0_40px_rgb(10,10,10),0_0_80px_rgb(5,5,5),0_0_120px_rgb(0,0,0)] relative">
+                    <div
+                      className="shrink-0 w-[30px] md:w-[88px]"
+                      aria-hidden="true"
+                    ></div>
+                    {[1, 2, 3].map((index) => (
                       <div
-                        className="shrink-0 w-[30px] md:w-[88px]"
-                        aria-hidden="true"
-                      ></div>
-                      {[1, 2, 3].map((index) => (
-                        <div
-                          key={index}
-                          className={`min-w-[220px] md:min-w-[266px] h-[450px] md:h-[575px] relative rounded-[20px] overflow-hidden
+                        key={index}
+                        className={`min-w-[220px] md:min-w-[266px] h-[450px] md:h-[575px] relative rounded-[20px] overflow-hidden
                                    bg-white/[0.03] animate-pulse my-2 ${
                                      index !== 1 ? "ml-4 md:ml-12" : ""
                                    }`}
-                        >
-                          <div className="absolute bottom-6 left-5 w-3/4">
-                            <div className="h-6 bg-white/[0.07] rounded mb-2"></div>
-                            <div className="h-4 bg-white/[0.07] rounded w-2/3"></div>
-                          </div>
+                      >
+                        <div className="absolute bottom-6 left-5 w-3/4">
+                          <div className="h-6 bg-white/[0.07] rounded mb-2"></div>
+                          <div className="h-4 bg-white/[0.07] rounded w-2/3"></div>
                         </div>
-                      ))}
-                      <div
-                        className="shrink-0 w-[88px]"
-                        aria-hidden="true"
-                      ></div>
-                    </div>
+                      </div>
+                    ))}
+                    <div className="shrink-0 w-[88px]" aria-hidden="true"></div>
                   </div>
-                </section>
-              }
-            >
-              <Projects />
-            </Suspense>
-          </div>
+                </div>
+              </section>
+            }
+          >
+            <Projects />
+          </Suspense>
         </div>
 
         {/* Experience Section */}
-        <div className="relative">
-          {/* Parallax wrapper */}
-          <div ref={experienceRef} className="relative will-change-transform">
-            <Suspense
-              fallback={
-                <section className="py-20 relative">
-                  <div className="max-w-[960px] mx-auto px-8 md:px-6">
-                    <div className="flex justify-center mb-12">
-                      <div className="bg-white/5 rounded-full p-1">
-                        <div className="px-6 py-2 rounded-full bg-white/10 animate-pulse"></div>
-                        <div className="px-6 py-2 rounded-full bg-white/10 animate-pulse"></div>
-                      </div>
-                    </div>
-                    <div className="space-y-8">
-                      {[1, 2, 3].map((index) => (
-                        <div key={index} className="relative pl-24">
-                          <div className="absolute left-0 w-16 h-16 rounded-full bg-white/5 animate-pulse"></div>
-                          <div className="space-y-2">
-                            <div className="h-4 w-32 bg-white/5 rounded animate-pulse"></div>
-                            <div className="h-6 w-48 bg-white/5 rounded animate-pulse"></div>
-                            <div className="h-5 w-36 bg-white/5 rounded animate-pulse"></div>
-                            <div className="space-y-2">
-                              <div className="h-4 w-full bg-white/5 rounded animate-pulse"></div>
-                              <div className="h-4 w-3/4 bg-white/5 rounded animate-pulse"></div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+
+        {/* Parallax wrapper */}
+        <div ref={experienceRef} className="relative will-change-transform">
+          <Suspense
+            fallback={
+              <section className="py-20 relative">
+                <div className="max-w-[960px] mx-auto px-8 md:px-6">
+                  <div className="flex justify-center mb-12">
+                    <div className="bg-white/5 rounded-full p-1">
+                      <div className="px-6 py-2 rounded-full bg-white/10 animate-pulse"></div>
+                      <div className="px-6 py-2 rounded-full bg-white/10 animate-pulse"></div>
                     </div>
                   </div>
-                </section>
-              }
-            >
-              <Experience />
-            </Suspense>
-          </div>
+                  <div className="space-y-8">
+                    {[1, 2, 3].map((index) => (
+                      <div key={index} className="relative pl-24">
+                        <div className="absolute left-0 w-16 h-16 rounded-full bg-white/5 animate-pulse"></div>
+                        <div className="space-y-2">
+                          <div className="h-4 w-32 bg-white/5 rounded animate-pulse"></div>
+                          <div className="h-6 w-48 bg-white/5 rounded animate-pulse"></div>
+                          <div className="h-5 w-36 bg-white/5 rounded animate-pulse"></div>
+                          <div className="space-y-2">
+                            <div className="h-4 w-full bg-white/5 rounded animate-pulse"></div>
+                            <div className="h-4 w-3/4 bg-white/5 rounded animate-pulse"></div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            }
+          >
+            <Experience />
+          </Suspense>
         </div>
 
         {/* Get in Touch Section */}
-        <section className="min-h-screen flex items-center justify-center relative">
+        <section
+          ref={contactRef}
+          className="min-h-screen flex items-center justify-center relative"
+        >
           <div className="max-w-[960px] mx-auto px-8 md:px-6">
-            <div className="flex items-center justify-center gap-4">
+            <div
+              ref={contactTextRef}
+              className="flex items-center justify-center gap-4"
+            >
               <div className="text-[42px]">👨‍💻</div>
               <h2 className="text-4xl font-bold bg-gradient-to-r from-white/90 to-white/60 bg-clip-text text-transparent">
                 get in touch

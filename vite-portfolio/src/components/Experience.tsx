@@ -93,7 +93,7 @@ export default function Experience() {
   const entries = activeTab === "work" ? workExperience : education;
 
   return (
-    <section className="py-20 relative min-h-[1100px]">
+    <section className="pt-20 relative">
       <div className="max-w-[960px] mx-auto px-8 md:px-6">
         {/* Toggle Buttons */}
         <div className="flex justify-center mb-12">
