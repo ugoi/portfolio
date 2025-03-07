@@ -190,13 +190,13 @@ function App() {
                 <div className="relative w-[175px] h-[175px] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)] rounded-xl">
                   <picture>
                     <source
-                      srcSet="https://cdn.stefandukic.com/images/stefan-greece-175.webp"
+                      srcSet="https://cdn.stefandukic.com/images/stefan-portrait-175.webp"
                       type="image/webp"
                       width="175"
                       height="175"
                     />
                     <img
-                      src="https://cdn.stefandukic.com/images/stefan-greece-175.jpeg"
+                      src="https://cdn.stefandukic.com/images/stefan-portrait-175.jpeg"
                       alt="Photo of Stefan"
                       className="w-full h-full object-cover rounded-xl bg-[#1a1a1a]"
                       width="175"
@@ -298,13 +298,13 @@ function App() {
                 <div className="relative w-[220px] h-[220px] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)] rounded-xl">
                   <picture>
                     <source
-                      srcSet="https://cdn.stefandukic.com/images/stefan-greece-220.webp"
+                      srcSet="https://cdn.stefandukic.com/images/stefan-portrait-220.webp"
                       type="image/webp"
                       width="220"
                       height="220"
                     />
                     <img
-                      src="https://cdn.stefandukic.com/images/stefan-greece-220.jpeg"
+                      src="https://cdn.stefandukic.com/images/stefan-portrait-220.jpeg"
                       alt="Photo of Stefan"
                       className="w-full h-full object-cover rounded-xl bg-[#1a1a1a]"
                       width="220"
