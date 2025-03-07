@@ -321,7 +321,10 @@ function App() {
         {/* Projects Section - only wrap the non-modal content in parallax */}
 
         {/* Parallax wrapper */}
-        <div ref={projectsRef} className="relative will-change-transform">
+        <div
+          ref={projectsRef}
+          className="relative will-change-transform px-0 md:px-12"
+        >
           <Suspense
             fallback={
               <section className="md:py-12 relative">
