@@ -45,8 +45,8 @@ const ChatBot = () => {
     setIsLoading(true);
 
     try {
-      // Call the chat service
-      const response = await sendMessage(inputValue);
+      // Call the chat service with the message history
+      const response = await sendMessage(inputValue, messages);
 
       const botResponse: Message = {
         id: (Date.now() + 1).toString(),

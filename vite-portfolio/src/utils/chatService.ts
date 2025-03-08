@@ -58,7 +58,10 @@ const API_URL =
     : "/api/chat"; // For local development with a separate backend
 
 // Function to send message to backend
-export async function sendMessage(message: string): Promise<string> {
+export async function sendMessage(
+  message: string,
+  history: ChatMessage[]
+): Promise<string> {
   try {
     // For local development without backend, use the mock response
     if (import.meta.env.VITE_MOCK_AI === "true") {
@@ -71,7 +74,7 @@ export async function sendMessage(message: string): Promise<string> {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, history }),
     });
 
     if (!response.ok) {
