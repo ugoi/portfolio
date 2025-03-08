@@ -1,5 +1,6 @@
 import { useState, lazy, Suspense, useEffect, useRef } from "react";
 import { useIsMobile } from "./hooks/useIsMobile";
+import ChatBot from "./components/ChatBot";
 
 // Lazy load the Projects component
 const Projects = lazy(() => import("./components/Projects"));
@@ -414,6 +415,9 @@ function App() {
           </div>
         </section>
       </div>
+
+      {/* Chat bot */}
+      <ChatBot />
     </div>
   );
 }
