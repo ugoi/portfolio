@@ -61,10 +61,40 @@ export default async function handler(req, res) {
     // Return the response
     return res.status(200).json({ response: responseText });
   } catch (error) {
-    console.error("Error calling OpenAI:", error);
+    console.error("Error calling OpenAI:", error.status);
+
+    // Handle rate limit errors
+    if (error.status === 429) {
+      return res.status(429).json({
+        error: "Rate limit exceeded",
+        message: "Too many requests. Please try again in a few moments.",
+        retryAfter: error.headers["retry-after"] || 60, // Default to 60 seconds if not specified
+      });
+    }
+
+    // Handle authentication errors
+    if (error.status === 401) {
+      return res.status(401).json({
+        error: "Authentication failed",
+        message: "Invalid API key or authentication error.",
+        type: "authentication_error",
+      });
+    }
+
+    // Handle other OpenAI API errors
+    if (error.error) {
+      return res.status(error.status || 500).json({
+        error: error.error.type || "OpenAI API Error",
+        message: error.error.message,
+        type: error.error.type,
+      });
+    }
+
+    // Handle general errors
     return res.status(500).json({
-      error: "An error occurred while processing your request",
-      details: error.message,
+      error: "Internal Server Error",
+      message: "An unexpected error occurred while processing your request.",
+      type: "internal_error",
     });
   }
 }

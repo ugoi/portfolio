@@ -55,7 +55,7 @@ export interface ChatMessage {
 const API_URL =
   import.meta.env.MODE === "production"
     ? "/api/chat" // This path works for both Vercel and Netlify serverless functions
-    : "http://localhost:3001/api/chat"; // For local development with a separate backend
+    : "/api/chat"; // For local development with a separate backend
 
 // Function to send message to backend
 export async function sendMessage(message: string): Promise<string> {
