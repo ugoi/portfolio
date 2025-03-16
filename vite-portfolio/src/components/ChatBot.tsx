@@ -22,22 +22,32 @@ const ChatBot = () => {
   const [isLoading, setIsLoading] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const lastMessageRef = useRef<HTMLDivElement>(null);
   const [shouldScroll, setShouldScroll] = useState(false);
 
   // Auto-scroll only when shouldScroll is true
   useEffect(() => {
-    if (shouldScroll) {
-      scrollToBottom();
+    if (
+      shouldScroll &&
+      lastMessageRef.current &&
+      messagesContainerRef.current
+    ) {
+      // Get position of the last message relative to the container
+      const containerRect =
+        messagesContainerRef.current.getBoundingClientRect();
+      const messageRect = lastMessageRef.current.getBoundingClientRect();
+      const relativeTop = messageRect.top - containerRect.top;
+
+      // Apply offset of 16px (or adjust as needed)
+      const offset = 16;
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollTop + relativeTop - offset,
+        behavior: "smooth",
+      });
+
       setShouldScroll(false);
     }
   }, [messages, shouldScroll]);
-
-  // Function to scroll to the bottom of the messages
-  const scrollToBottom = () => {
-    if (bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,35 +127,51 @@ const ChatBot = () => {
 
           {/* Messages area - Scrollable */}
           <div
-            className="flex-1 overflow-y-auto p-3 space-y-4 scrollbar-pretty"
+            className="flex-1 overflow-y-auto p-3 space-y-5 scrollbar-pretty"
             ref={messagesContainerRef}
           >
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex ${
-                  msg.sender === "user" ? "justify-end" : "justify-start"
-                }`}
-              >
-                <div
-                  className={`max-w-[75%] p-2 rounded-lg ${
-                    msg.sender === "user"
-                      ? "bg-blue-600 text-white"
-                      : "bg-white/10 text-white/90"
+            {messages.map((msg, index) => {
+              const isLastMessage = index === messages.length - 1;
+              return (
+                <article
+                  className={`flex-1 ${
+                    isLastMessage && msg.sender === "bot" ? "min-h-[90%]" : ""
                   }`}
+                  key={msg.id}
+                  ref={
+                    isLastMessage && msg.sender === "user"
+                      ? lastMessageRef
+                      : undefined
+                  }
                 >
-                  {msg.text}
-                </div>
-              </div>
-            ))}
+                  <div
+                    className={`flex ${
+                      msg.sender === "user" ? "justify-end" : "justify-start"
+                    }`}
+                  >
+                    <div
+                      className={`max-w-[75%] p-2 rounded-lg ${
+                        msg.sender === "user"
+                          ? "bg-blue-600 text-white"
+                          : "bg-white/10 text-white/90"
+                      }`}
+                    >
+                      {msg.text}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
             {isLoading && (
-              <div className="flex justify-start">
-                <div className="max-w-[75%] p-2 rounded-lg bg-white/10 text-white/90 flex space-x-1 items-center">
-                  <div className="w-1.5 h-1.5 bg-white/70 rounded-full animate-pulse"></div>
-                  <div className="w-1.5 h-1.5 bg-white/70 rounded-full animate-pulse delay-75"></div>
-                  <div className="w-1.5 h-1.5 bg-white/70 rounded-full animate-pulse delay-150"></div>
+              <article className="min-h-[90%]">
+                <div className="flex justify-start">
+                  <div className="max-w-[75%] p-2 rounded-lg bg-white/10 text-white/90 flex space-x-1 items-center">
+                    <div className="w-1.5 h-1.5 bg-white/70 rounded-full animate-pulse"></div>
+                    <div className="w-1.5 h-1.5 bg-white/70 rounded-full animate-pulse delay-75"></div>
+                    <div className="w-1.5 h-1.5 bg-white/70 rounded-full animate-pulse delay-150"></div>
+                  </div>
                 </div>
-              </div>
+              </article>
             )}
             {/* Empty div at the bottom to scroll to */}
             <div ref={bottomRef} />
