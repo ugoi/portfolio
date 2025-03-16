@@ -127,8 +127,9 @@ const ChatBot = () => {
 
           {/* Messages area - Scrollable */}
           <div
-            className="flex-1 overflow-y-auto p-3 space-y-5 scrollbar-pretty"
+            className="flex-1 overflow-y-auto p-3 space-y-5"
             ref={messagesContainerRef}
+            style={{ colorScheme: "dark" }}
           >
             {messages.map((msg, index) => {
               const isLastMessage = index === messages.length - 1;
