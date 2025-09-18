@@ -194,7 +194,7 @@ function App() {
                       />
                       <img
                         src="https://cdn.stefandukic.com/images/stefan-portrait-175.jpeg"
-                        alt="Photo of Stefan"
+                        alt="Stefan Dukic - Full-stack developer and AI enthusiast professional headshot"
                         className="w-full h-full object-cover rounded-xl bg-[#1a1a1a]"
                         width="175"
                         height="175"
@@ -209,7 +209,7 @@ function App() {
 
                 <div className="max-w-[500px] animate-slide-from-left">
                   <h1 className="text-5xl font-bold mb-4">
-                    i'm stefan
+                    Stefan Dukic - Full-Stack Developer & AI Enthusiast
                     <span className="ml-2 inline-flex items-center">
                       <div className="relative inline-block group">
                         {/* Rotating container for the peace emoji and the serbian flag */}
@@ -302,7 +302,7 @@ function App() {
                       />
                       <img
                         src="https://cdn.stefandukic.com/images/stefan-portrait-220.jpeg"
-                        alt="Photo of Stefan"
+                        alt="Stefan Dukic - Full-stack developer and AI enthusiast professional portrait"
                         className="w-full h-full object-cover rounded-xl bg-[#1a1a1a]"
                         width="220"
                         height="220"
@@ -330,6 +330,7 @@ function App() {
             fallback={
               <section className="md:py-12 relative">
                 <div className="max-w-[1104px] mx-auto">
+                  <h2 className="sr-only">Featured Projects</h2>
                   <div className="flex overflow-x-auto hidescrollbar md:py-22 md:bg-[rgb(18,18,18)] md:rounded-[60px] md:border md:border-white/[0.08] md:shadow-[0_0_40px_rgb(10,10,10),0_0_80px_rgb(5,5,5),0_0_120px_rgb(0,0,0)] relative">
                     <div
                       className="shrink-0 w-[30px] md:w-[88px]"
@@ -402,6 +403,7 @@ function App() {
           ref={contactRef}
           className="min-h-screen flex items-center justify-center relative"
         >
+          <h2 className="sr-only">Contact Information</h2>
           <div className="max-w-[960px] mx-auto px-8 md:px-6">
             <div
               ref={contactTextRef}

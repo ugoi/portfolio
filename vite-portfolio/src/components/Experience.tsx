@@ -95,6 +95,7 @@ export default function Experience() {
   return (
     <section className="pt-20 relative">
       <div className="max-w-[960px] mx-auto px-8 md:px-6">
+        <h2 className="sr-only">Professional Experience & Education</h2>
         {/* Toggle Buttons */}
         <div className="flex justify-center mb-12">
           <div className="bg-white/5 rounded-full p-1">

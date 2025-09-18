@@ -1,0 +1,160 @@
+# Stefan Dukic Portfolio - AI Documentation
+# https://stefandukic.com/llms.txt
+# Last updated: 2025-01-27
+
+## About Stefan Dukic
+Full-stack developer and AI enthusiast currently pursuing Mastery in Software Engineering at 42 Lausanne. Level 13.88 student with exceptional academic performance and professional experience at major technology companies.
+
+## Professional Experience
+
+### Audi AG - Software Engineer (Nov 2023 - Apr 2024)
+- Designed REST APIs using RAML and developed complete backend services for financial systems integration
+- Managed CI/CD pipelines and documented APIs on Confluence, improving team adoption and maintenance efficiency
+- Streamlined research and analytics workflows by optimizing business logic and creating data visualizations
+- Leveraged test-driven development to deliver robust, scalable software in conjunction with Agile teams
+
+### Veri School - Software Engineer (Feb 2022 - Oct 2022)
+- Developed a decentralized IT education platform focused on blockchain-based solutions
+- Built decentralized autonomous organizations (DAOs) using OpenZeppelin and Aragon frameworks
+- Created a DApp prototype using Moralis to showcase the platform's core functionality
+- Optimized platform for security and ease of use while maintaining high performance standards
+
+## Education
+
+### 42 Lausanne - Mastery in Software Engineering (May 2024 - Present)
+- Specializing in Full Stack Development
+- Proficient in utilizing various technologies including React, Node.js, and PostgreSQL
+- Focus on advanced frontend and backend development techniques
+
+### 42 Heilbronn - Core Curriculum in Software Engineering (Oct 2022 - May 2024)
+- Recognized as one of the quickest learners of the year
+- Mastered C, C++, JavaScript, Bash, Networks, Algorithms, and Virtualizations
+- Built strong foundation in computer science fundamentals
+- Collaborated with peers to build multiple projects
+
+### Kantonsschule Romanshorn - Secondary Education (Aug 2018 - Aug 2022)
+- Top student in physics with strong analytical skills
+- Participated in Talenta IT: Python, neural networks, and Arduino
+- Built a CPU from scratch using transistors
+- Developed projects using Unreal Engine
+
+## Technical Skills
+
+### Frontend Technologies
+- React, TypeScript, Next.js
+- Flutter, SwiftUI
+- Vanilla JavaScript, HTML, CSS
+- TailwindCSS, Responsive Design
+
+### Backend Technologies
+- Node.js, Express, NestJS
+- Supabase, Firebase, Mulesoft
+- REST APIs, GraphQL
+- WebSocket, Real-time Communication
+
+### Programming Languages
+- Python, C, C++, Java
+- JavaScript, TypeScript, Dart
+- SQL, DataWeave
+- Bash, Shell Scripting
+
+### AI & Machine Learning
+- OpenAI API integration
+- Neural Networks
+- AI-powered applications
+- Machine Learning workflows
+
+### Databases & Data
+- PostgreSQL, MySQL
+- Data Warehouse, Data Lake
+- ETL processes
+- Database optimization
+
+### DevOps & Tools
+- Docker, Containerization
+- CI/CD pipelines
+- Unix, GNU Make, Git
+- Jira, GitHub Issues, Agile, Scrum
+
+### Hardware & IoT
+- Raspberry Pi development
+- RC Cars, Drones
+- Arduino, Embedded systems
+- Hardware-software integration
+
+## Notable Projects
+
+### Matcha - Dating Platform
+- Full-featured dating platform with real-time matching and communication
+- Technologies: Express, React, TypeScript, PostgreSQL, WebSocket, OAuth2
+- Features: User profiles, GPS-based location matching, real-time chat, notifications
+- GitHub: https://github.com/ugoi/Matcha
+
+### ft_transcendence - Multiplayer Arcade Game
+- Multiplayer online game combining classic arcade games (Pong, Breakout) with modern features
+- Technologies: NestJS, React, Docker, PostgreSQL, WebSocket, TypeScript
+- Features: Special abilities, power-ups, leveling system, real-time matches, ranking system
+- GitHub: https://github.com/FVNRLS/ft_transcendence
+
+### ft_irc - IRC Server
+- Robust Internet Relay Chat server implementation in C++98
+- Technologies: C++98, TCP/IP, Socket Programming, Non-blocking I/O
+- Features: Multi-client support, channel management, private messaging, operator commands
+- GitHub: https://github.com/Qfinel/42School_ft_irc
+
+### Camagru - Photo Editing Platform
+- Web-based photo editing platform combining webcam captures with superposable images
+- Technologies: React, TypeScript, Java, PostgreSQL, WebRTC, Image Processing
+- Features: User authentication, gallery management, real-time webcam preview, social features
+
+### Swifty Companion - 42 Student Info App
+- Mobile application retrieving and displaying 42 student information using 42 API
+- Technologies: Swift, iOS, OAuth2, REST API
+- Features: User profiles, skills display, project history, responsive layouts
+
+### cub3D - RayCaster Game
+- 3D ray-casting game inspired by Wolfenstein 3D
+- Technologies: C, miniLibX, RayCasting, Graphics
+- Features: Textured walls, smooth movement controls, custom map parser
+
+### ft_hangouts - Contact Management App
+- Mobile application for managing contacts and sending text messages
+- Technologies: Android, iOS, SQLite, Mobile SDK
+- Features: Persistent SQLite storage, bilingual support, conversation history
+
+## Achievements & Recognition
+
+- Fastest student to complete the Core Curriculum at 42 Heilbronn
+- Exceptional grades in multiple projects (many 100%+ scores)
+- Built a CPU from scratch using transistors during secondary education
+- Developed projects using Unreal Engine
+- Certified Rescue Scuba Diver
+- Active in sports, biking, and fitness
+- Interest in science fiction and AI-related stories
+
+## Languages
+- Native German speaker
+- Fluent in English
+- Fluent in Serbian
+
+## Contact Information
+- Email: codecraftingpro@gmail.com
+- LinkedIn: https://www.linkedin.com/in/stefan-dukic-68682b20b/
+- GitHub: https://github.com/ugoi
+- Portfolio: https://stefandukic.com
+
+## Location
+Based in Switzerland, available for remote work and collaboration.
+
+## Availability
+Currently pursuing advanced studies at 42 Lausanne while available for freelance projects and consulting opportunities. Open to discussing full-time positions and long-term collaborations.
+
+## Specializations
+- Full-stack web development
+- AI integration and machine learning applications
+- Real-time applications and WebSocket implementations
+- Blockchain and decentralized applications
+- Mobile app development (iOS/Android)
+- System architecture and scalable solutions
+- API design and development
+- DevOps and CI/CD implementation

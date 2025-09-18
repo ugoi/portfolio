@@ -398,7 +398,7 @@ export default function Projects() {
                   {/* Preview image that shows while video loads */}
                   <img
                     src={project.previewUrl}
-                    alt={`${project.title} preview`}
+                    alt={`${project.title} - ${project.shortDescription} project preview and demonstration`}
                     className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
                       loadedVideos.has(project.id) ? "opacity-0" : "opacity-100"
                     }`}
@@ -563,7 +563,7 @@ export default function Projects() {
                   ) : (
                     <img
                       src={selectedProject.previewUrl}
-                      alt={`${selectedProject.title} preview`}
+                      alt={`${selectedProject.title} - ${selectedProject.shortDescription} detailed project showcase and demonstration`}
                       className="w-full h-full object-contain bg-black"
                     />
                   )}
