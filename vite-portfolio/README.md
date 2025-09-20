@@ -2,7 +2,7 @@
 
 Welcome to my personal portfolio website! This modern, responsive web application showcases my projects and professional journey as a full-stack developer and AI enthusiast.
 
-## 🌟 Features 
+## 🌟 Features
 
 - Modern, responsive design with smooth animations
 - Dark mode optimized interface
