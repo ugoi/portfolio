@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { createPortal } from "react-dom";
 import fullscreen from "../utils/fullscreen";
 import { useIsMobile } from "../hooks/useIsMobile";
+import { createPortal } from "react-dom";
 
 interface Project {
   id: number;
@@ -246,7 +246,7 @@ export default function Projects() {
   }, []);
 
   // Update the fullscreen change handler to use our wrapper
-  useEffect(() => {
+  useEffect(() => {    
     if (selectedProject && modalVideoRef.current) {
       const video = modalVideoRef.current;
 
@@ -285,23 +285,20 @@ export default function Projects() {
       // Handle fullscreen changes using our wrapper
       const handleFullscreenChange = () => {
         // When exiting fullscreen
-        if (!fullscreen.element) {
+        if (!fullscreen.enabled) {
           // Always pause when exiting fullscreen
           video.pause();
         } else {
           // When entering fullscreen on mobile, we attempt to play
           // This helps with Chrome on Android (including OnePlus devices)
-          if (isMobile) {
-            // Small delay to let the browser complete the fullscreen transition
-            setTimeout(() => {
-              video.play().catch((error) => {
-                console.error("Error playing after fullscreen change:", error);
-              });
-            }, 100);
-          }
+          // Small delay to let the browser complete the fullscreen transition
+          setTimeout(() => {
+            video.play().catch((error) => {
+              console.error("Error playing after fullscreen change:", error);
+            });
+          }, 100);
         }
       };
-
       fullscreen.addEventListener(handleFullscreenChange);
       return () => {
         fullscreen.removeEventListener(handleFullscreenChange);
@@ -312,7 +309,6 @@ export default function Projects() {
   }, [selectedProject, isMobile]);
 
   const handleVideoClick = async () => {
-    console.log("handleVideoClick");
     if (!isMobile) return;
 
     const video = modalVideoRef.current;
@@ -322,7 +318,6 @@ export default function Projects() {
       if (!fullscreen.element) {
         // Request fullscreen first
         await fullscreen.request(video);
-
         // For Chrome on Android (particularly OnePlus), we need to add a small delay
         // between requesting fullscreen and playing the video
         setTimeout(() => {
@@ -518,85 +513,85 @@ export default function Projects() {
                 </svg>
               </button>
 
-              <div className="relative mb-6">
-                <div className="aspect-video md:aspect-video rounded-xl overflow-hidden">
-                  {selectedProject.hlsUrl ? (
-                    <>
-                      <video
-                        ref={modalVideoRef}
-                        autoPlay={!isMobile}
-                        muted
-                        loop
-                        playsInline
-                        controls={!isMobile}
-                        crossOrigin="anonymous"
-                        className="w-full h-full object-contain bg-black"
+            <div className="relative mb-6">
+              <div className="aspect-video md:aspect-video rounded-xl overflow-hidden">
+                {selectedProject.hlsUrl ? (
+                  <>
+                    <video
+                      ref={modalVideoRef}
+                      autoPlay={!isMobile}
+                      muted
+                      loop
+                      playsInline
+                      controls={!isMobile}
+                      crossOrigin="anonymous"
+                      className="w-full h-full object-contain bg-black"
+                      onClick={handleVideoClick}
+                    >
+                      {selectedProject.captionsUrl && (
+                        <track
+                          kind="captions"
+                          src={selectedProject.captionsUrl}
+                          srcLang="en"
+                          label="English"
+                          default
+                        />
+                      )}
+                    </video>
+                    {isMobile && isVideoPaused && (
+                      <div
+                        className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer"
                         onClick={handleVideoClick}
                       >
-                        {selectedProject.captionsUrl && (
-                          <track
-                            kind="captions"
-                            src={selectedProject.captionsUrl}
-                            srcLang="en"
-                            label="English"
-                            default
-                          />
-                        )}
-                      </video>
-                      {isMobile && isVideoPaused && (
-                        <div
-                          className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer"
-                          onClick={handleVideoClick}
-                        >
-                          <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                            <svg
-                              className="w-8 h-8 text-white"
-                              fill="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path d="M8 5v14l11-7z" />
-                            </svg>
-                          </div>
+                        <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                          <svg
+                            className="w-8 h-8 text-white"
+                            fill="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path d="M8 5v14l11-7z" />
+                          </svg>
                         </div>
-                      )}
-                    </>
-                  ) : (
-                    <img
-                      src={selectedProject.previewUrl}
-                      alt={`${selectedProject.title} - ${selectedProject.shortDescription} detailed project showcase and demonstration`}
-                      className="w-full h-full object-contain bg-black"
-                    />
-                  )}
-                </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <img
+                    src={selectedProject.previewUrl}
+                    alt={`${selectedProject.title} - ${selectedProject.shortDescription} detailed project showcase and demonstration`}
+                    className="w-full h-full object-contain bg-black"
+                  />
+                )}
               </div>
+            </div>
 
-              <h3
-                className="text-2xl font-bold mb-2"
-                style={{ color: "var(--color-text-primary)" }}
-              >
-                {selectedProject.title}
-              </h3>
-              <p className="text-gray-400 mb-4">
-                {selectedProject.detailedDescription}
-              </p>
+            <h3
+              className="text-2xl font-bold mb-2"
+              style={{ color: "var(--color-text-primary)" }}
+            >
+              {selectedProject.title}
+            </h3>
+            <p className="text-gray-400 mb-4">
+              {selectedProject.detailedDescription}
+            </p>
 
-              <div className="flex flex-wrap gap-2 mb-6">
-                {selectedProject.technologies.map((tech) => (
-                  <span
-                    key={tech}
-                    className="px-3 py-1 bg-white/10 rounded-full text-sm"
-                    style={{ color: "var(--color-text-primary)" }}
-                  >
-                    {tech}
-                  </span>
-                ))}
-              </div>
+            <div className="flex flex-wrap gap-2 mb-6">
+              {selectedProject.technologies.map((tech) => (
+                <span
+                  key={tech}
+                  className="px-3 py-1 bg-white/10 rounded-full text-sm"
+                  style={{ color: "var(--color-text-primary)" }}
+                >
+                  {tech}
+                </span>
+              ))}
+            </div>
 
-              <a
-                href={selectedProject.githubUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 
+            <a
+              href={selectedProject.githubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 
                      transition-colors rounded-full px-4 py-2"
                 style={{ color: "var(--color-text-primary)" }}
               >

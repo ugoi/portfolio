@@ -25,16 +25,21 @@ declare global {
 
 // Create a wrapper that conforms to the standard Fullscreen API
 const fullscreen = {
-  enabled: !!(
-    document.fullscreenEnabled ||
-    (document as DocumentWithFullscreen).webkitFullscreenEnabled ||
-    (document as DocumentWithFullscreen).mozFullScreenEnabled
-  ),
+  enabled:
+    typeof document !== "undefined"
+      ? !!(
+          document.fullscreenEnabled ||
+          (document as DocumentWithFullscreen).webkitFullscreenEnabled ||
+          (document as DocumentWithFullscreen).mozFullScreenEnabled
+        )
+      : false,
 
   element:
-    document.fullscreenElement ||
-    (document as DocumentWithFullscreen).webkitFullscreenElement ||
-    (document as DocumentWithFullscreen).mozFullScreenElement,
+    typeof document !== "undefined"
+      ? document.fullscreenElement ||
+        (document as DocumentWithFullscreen).webkitFullscreenElement ||
+        (document as DocumentWithFullscreen).mozFullScreenElement
+      : undefined,
 
   request: async (element: FullscreenElement) => {
     if (element.webkitEnterFullscreen) {

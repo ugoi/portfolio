@@ -9,12 +9,6 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       output: {
-        manualChunks: {
-          "react-vendor": ["react"],
-          "react-dom-vendor": ["react-dom"],
-          "hls-vendor": ["hls.js"],
-        },
-        chunkFileNames: "assets/[name]-[hash].js",
         assetFileNames: "assets/[name]-[hash][extname]",
       },
     },
