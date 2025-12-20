@@ -50,12 +50,8 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
-// API endpoint - Update with your actual production URL when deployed
-// For Vercel serverless functions, this would be '/api/chat'
-const API_URL =
-  import.meta.env.MODE === "production"
-    ? "/api/chat" // This path works for both Vercel and Netlify serverless functions
-    : "/api/chat"; // For local development with a separate backend
+// API endpoint for chat - works for both production and development
+const API_URL = "/api/chat";
 
 // Function to send message to backend
 export async function sendMessage(
@@ -82,6 +78,9 @@ export async function sendMessage(
     }
 
     const data = await response.json();
+    if (!data || typeof data.response !== "string") {
+      throw new Error("Invalid response format from API");
+    }
     return data.response;
   } catch (error) {
     console.error("Error sending message:", error);

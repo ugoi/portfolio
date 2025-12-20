@@ -1,14 +1,14 @@
-import { OpenAI } from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { checkRateLimit } from "./rateLimit.js";
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize Gemini client
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Content about Stefan to provide context to the AI
 const portfolioContent = `
 About Stefan Dukic:
-- Full-stack developer and AI enthusiast currently pursuing a Mastery in Software Engineering at 42 Lausanne
+- Full-stack developer and AI Engineer currently pursuing a Mastery in Software Engineering at 42 Lausanne
+- Currently working as an AI Engineer Intern at Aurora Intelligence (Oct 2025 - Present) in Switzerland, developing AI-powered solutions using Python
 - Level 13.88 student at 42 Lausanne with exceptional academic performance
 - Former Software Engineer at Audi AG (Nov 2023 - Apr 2024) where he developed REST APIs and managed CI/CD pipelines
 - Former Software Engineer at Veri School (Feb 2022 - Oct 2022) where he worked on blockchain-based solutions
@@ -60,6 +60,16 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  // Check rate limit
+  const rateLimitResult = checkRateLimit(req);
+  if (!rateLimitResult.allowed) {
+    return res.status(429).json({
+      error: "Rate limit exceeded",
+      message: `Too many requests. Please try again in ${rateLimitResult.retryAfter} seconds.`,
+      retryAfter: rateLimitResult.retryAfter,
+    });
+  }
+
   try {
     const { message, history } = req.body;
 
@@ -67,49 +77,48 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Message is required" });
     }
 
-    // Convert history to OpenAI message format and limit to last 5 messages
-    const messageHistory =
-      history
-        ?.slice(-5) // Only take the last 5 messages
-        .map((msg) => ({
-          role: msg.sender === "user" ? "user" : "assistant",
-          content: msg.text,
-        })) || [];
-
-    // Call OpenAI API
-    const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        {
-          role: "system",
-          content: `You are a helpful assistant for Stefan Dukic's portfolio website. Your purpose is to answer questions about Stefan, his skills, projects, and experience. ${portfolioContent}`,
-        },
-        ...messageHistory,
-        { role: "user", content: message },
-      ],
-      max_tokens: 500,
-      temperature: 0.7,
+    // Initialize model with system instruction
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.0-flash",
+      systemInstruction: `You are a helpful assistant for Stefan Dukic's portfolio website. Your purpose is to answer questions about Stefan, his skills, projects, and experience. ${portfolioContent}`,
+      generationConfig: {
+        maxOutputTokens: 500,
+        temperature: 0.7,
+      },
     });
 
-    // Extract the response text
-    const responseText = completion.choices[0].message.content;
+    // Convert history to Gemini format and limit to last 5 messages
+    // Gemini requires history to start with a user message, so filter out leading bot messages
+    let filteredHistory = history?.slice(-5) || [];
+    while (filteredHistory.length > 0 && filteredHistory[0].sender !== "user") {
+      filteredHistory = filteredHistory.slice(1);
+    }
+    const geminiHistory = filteredHistory.map((msg) => ({
+      role: msg.sender === "user" ? "user" : "model",
+      parts: [{ text: msg.text }],
+    }));
+
+    // Start chat with history and send message
+    const chat = model.startChat({ history: geminiHistory });
+    const result = await chat.sendMessage(message);
+    const responseText = result.response.text();
 
     // Return the response
     return res.status(200).json({ response: responseText });
   } catch (error) {
-    console.error("Error calling OpenAI:", error.status);
+    console.error("Error calling Gemini:", error);
 
-    // Handle rate limit errors
-    if (error.status === 429) {
+    // Handle rate limit errors from Gemini
+    if (error.status === 429 || error.message?.includes("RATE_LIMIT")) {
       return res.status(429).json({
         error: "Rate limit exceeded",
         message: "Too many requests. Please try again in a few moments.",
-        retryAfter: error.headers["retry-after"] || 60, // Default to 60 seconds if not specified
+        retryAfter: 60,
       });
     }
 
     // Handle authentication errors
-    if (error.status === 401) {
+    if (error.status === 401 || error.message?.includes("API_KEY")) {
       return res.status(401).json({
         error: "Authentication failed",
         message: "Invalid API key or authentication error.",
@@ -117,12 +126,12 @@ export default async function handler(req, res) {
       });
     }
 
-    // Handle other OpenAI API errors
-    if (error.error) {
-      return res.status(error.status || 500).json({
-        error: error.error.type || "OpenAI API Error",
-        message: error.error.message,
-        type: error.error.type,
+    // Handle safety/content filtering errors
+    if (error.message?.includes("SAFETY") || error.message?.includes("blocked")) {
+      return res.status(400).json({
+        error: "Content filtered",
+        message: "The request was blocked due to content safety policies.",
+        type: "safety_error",
       });
     }
 

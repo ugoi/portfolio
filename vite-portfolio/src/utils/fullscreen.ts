@@ -7,6 +7,7 @@ interface FullscreenElement extends HTMLElement {
 
 interface DocumentWithFullscreen extends Document {
   mozCancelFullScreen?: () => void;
+  webkitExitFullscreen?: () => void;
   webkitFullscreenEnabled?: boolean;
   webkitFullscreenElement?: Element | null;
   mozFullScreenEnabled?: boolean;
@@ -52,13 +53,11 @@ const fullscreen = {
   },
 
   exit: async () => {
-    if ((document as any).webkitExitFullscreen) {
-      (document as any).webkitExitFullscreen();
-    } else if ((document as DocumentWithFullscreen).mozCancelFullScreen) {
-      const doc = document as DocumentWithFullscreen;
-      if (doc.mozCancelFullScreen) {
-        doc.mozCancelFullScreen();
-      }
+    const doc = document as DocumentWithFullscreen;
+    if (doc.webkitExitFullscreen) {
+      doc.webkitExitFullscreen();
+    } else if (doc.mozCancelFullScreen) {
+      doc.mozCancelFullScreen();
     } else if (document.exitFullscreen) {
       await document.exitFullscreen();
     }

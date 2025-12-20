@@ -15,6 +15,19 @@ interface TimelineEntry {
 const workExperience: TimelineEntry[] = [
   {
     id: 1,
+    year: "Oct 2025 - Present",
+    company: "Aurora Intelligence",
+    role: "AI Engineer (Internship)",
+    description: [
+      "Developing AI-powered solutions using Python and modern machine learning frameworks",
+      "Building and optimizing intelligent systems for real-world applications",
+      "Working in a hybrid environment in Switzerland on cutting-edge AI projects",
+    ],
+    gradient: "from-cyan-500/20 via-teal-500/20 to-emerald-500/20",
+    icon: "🤖",
+  },
+  {
+    id: 2,
     year: "Nov 2023 - Apr 2024",
     company: "Audi AG",
     role: "Software Engineer",
@@ -28,7 +41,7 @@ const workExperience: TimelineEntry[] = [
     icon: "🚗",
   },
   {
-    id: 2,
+    id: 3,
     year: "Feb 2022 - Oct 2022",
     company: "Veri School",
     role: "Software Engineer",

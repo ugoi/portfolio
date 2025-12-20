@@ -155,6 +155,11 @@ export default function Projects() {
   const modalVideoRef = useRef<HTMLVideoElement>(null);
   const [loadedVideos, setLoadedVideos] = useState<Set<number>>(new Set());
   const videoTimestampsRef = useRef<{ [key: number]: number }>({});
+  // Store HLS instances and event handlers for proper cleanup
+  const hlsInstancesRef = useRef<{ [key: number]: { destroy: () => void } }>({});
+  const videoHandlersRef = useRef<{
+    [key: number]: { playing: () => void; pause: () => void };
+  }>({});
 
   // Use the custom hook instead of local state and effect
   const isMobile = useIsMobile(768);
@@ -177,6 +182,11 @@ export default function Projects() {
   }, [selectedProject]);
 
   useEffect(() => {
+    // Capture refs at effect start for cleanup
+    const currentVideoRefs = videoRefs.current;
+    const currentHlsRefs = hlsInstancesRef;
+    const currentHandlerRefs = videoHandlersRef;
+
     // Initialize HLS for each video when they become visible
     const observer = new IntersectionObserver(
       (entries) => {
@@ -185,12 +195,16 @@ export default function Projects() {
           const projectId = Number(video.dataset.projectId);
 
           if (entry.isIntersecting) {
+            // Skip if already initialized
+            if (hlsInstancesRef.current[projectId]) return;
+
             try {
               // Dynamically import HLS.js only when needed
               const { default: Hls } = await import("hls.js");
 
               if (Hls.isSupported() && projects[projectId - 1].hlsUrl) {
                 const hls = new Hls();
+                hlsInstancesRef.current[projectId] = hls;
                 hls.loadSource(projects[projectId - 1].hlsUrl);
                 hls.attachMedia(video);
                 hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -201,28 +215,49 @@ export default function Projects() {
                   video.play().catch(() => {});
                 });
 
-                // Listen for when video starts playing
-                video.addEventListener("playing", () => {
+                // Create named handlers for proper cleanup
+                const playingHandler = () => {
                   setLoadedVideos((prev) => new Set([...prev, projectId]));
-                });
-
-                // Track time when video is paused
-                video.addEventListener("pause", () => {
+                };
+                const pauseHandler = () => {
                   videoTimestampsRef.current[projectId] = video.currentTime;
-                  // remove video from loadedVideos
                   setLoadedVideos((prev) => {
                     const newSet = new Set(prev);
                     newSet.delete(projectId);
                     return newSet;
                   });
-                });
+                };
+
+                // Store handlers for cleanup
+                videoHandlersRef.current[projectId] = {
+                  playing: playingHandler,
+                  pause: pauseHandler,
+                };
+
+                video.addEventListener("playing", playingHandler);
+                video.addEventListener("pause", pauseHandler);
               }
             } catch (error) {
               console.error("Error loading HLS:", error);
             }
           } else {
-            // When video leaves viewport, pause it
+            // When video leaves viewport, pause and cleanup
             video.pause();
+
+            // Remove event listeners
+            const handlers = videoHandlersRef.current[projectId];
+            if (handlers) {
+              video.removeEventListener("playing", handlers.playing);
+              video.removeEventListener("pause", handlers.pause);
+              delete videoHandlersRef.current[projectId];
+            }
+
+            // Destroy HLS instance
+            const hls = hlsInstancesRef.current[projectId];
+            if (hls) {
+              hls.destroy();
+              delete hlsInstancesRef.current[projectId];
+            }
           }
         });
       },
@@ -242,6 +277,18 @@ export default function Projects() {
 
     return () => {
       observer.disconnect();
+      // Clean up all HLS instances
+      Object.values(currentHlsRefs.current).forEach((hls) => hls.destroy());
+      currentHlsRefs.current = {};
+      // Clean up all event handlers
+      Object.entries(currentHandlerRefs.current).forEach(([id, handlers]) => {
+        const video = currentVideoRefs[Number(id)];
+        if (video) {
+          video.removeEventListener("playing", handlers.playing);
+          video.removeEventListener("pause", handlers.pause);
+        }
+      });
+      currentHandlerRefs.current = {};
     };
   }, []);
 

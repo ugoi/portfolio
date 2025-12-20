@@ -184,11 +184,16 @@ const ChatBot = () => {
             className="p-3 border-t border-white/10 bg-white/5 sticky bottom-0 z-10"
           >
             <div className="flex">
+              <label htmlFor="chat-message-input" className="sr-only">
+                Type your message to Stefan's AI assistant
+              </label>
               <input
+                id="chat-message-input"
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder="Type a message..."
+                aria-label="Chat message"
                 className="flex-1 bg-white/5 border border-white/10 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-1 focus:ring-white/30"
                 disabled={isLoading}
               />
