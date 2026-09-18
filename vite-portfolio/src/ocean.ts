@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { Reflector } from "three/addons/objects/Reflector.js";
 
 export interface OceanController {
   setBlueprint: (value: boolean) => void;
@@ -19,7 +20,7 @@ export function createOcean(
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.6));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.3;
+  renderer.toneMappingExposure = 1.08;
   container.appendChild(renderer.domElement);
   const scene = new THREE.Scene();
   scene.fog = new THREE.FogExp2(0x06232d, 0.028);
@@ -31,8 +32,8 @@ export function createOcean(
   room.dispose();
   pmrem.dispose();
 
-  scene.add(new THREE.HemisphereLight(0x8fe8ff, 0x062632, 3));
-  const key = new THREE.DirectionalLight(0xb8efff, 5);
+  scene.add(new THREE.HemisphereLight(0x8fe8ff, 0x062632, 1.8));
+  const key = new THREE.DirectionalLight(0xd5edee, 3.2);
   key.position.set(-4, 7, 5);
   scene.add(key);
   const rim = new THREE.PointLight(0x39eddb, 65, 16);
@@ -42,42 +43,46 @@ export function createOcean(
   blue.position.set(0, -1, -4);
   scene.add(blue);
 
-  const metal = new THREE.MeshStandardMaterial({
-    color: 0x698e99,
-    metalness: 0.94,
-    roughness: 0.25,
+  const shell = new THREE.MeshStandardMaterial({
+    color: 0xe6eee8,
+    metalness: 0.02,
+    roughness: 0.36,
+  });
+  const safetyOrange = new THREE.MeshStandardMaterial({
+    color: 0xf25b25,
+    metalness: 0.03,
+    roughness: 0.4,
   });
   const dark = new THREE.MeshStandardMaterial({
-    color: 0x08202c,
-    metalness: 0.82,
-    roughness: 0.33,
+    color: 0x173c44,
+    metalness: 0.3,
+    roughness: 0.48,
   });
   const lightMetal = new THREE.MeshStandardMaterial({
-    color: 0xb4d8d5,
-    metalness: 0.9,
-    roughness: 0.18,
+    color: 0xc9dedc,
+    metalness: 0.8,
+    roughness: 0.27,
   });
-  const rubber = new THREE.MeshStandardMaterial({
-    color: 0x031316,
-    metalness: 0.3,
-    roughness: 0.68,
+  const ropeMaterial = new THREE.MeshStandardMaterial({
+    color: 0xd0cbb1,
+    roughness: 0.86,
+  });
+  const ropeThread = new THREE.MeshStandardMaterial({
+    color: 0xa6a58d,
+    roughness: 0.92,
   });
   const glow = new THREE.MeshStandardMaterial({
-    color: 0x9bffe9,
-    emissive: 0x5cf8d7,
-    emissiveIntensity: 2,
-    metalness: 0.3,
-    roughness: 0.24,
+    color: 0x82ddd9,
+    emissive: 0x3ac5c4,
+    emissiveIntensity: 0.4,
+    metalness: 0.35,
+    roughness: 0.28,
   });
-  const oceanBlue = new THREE.MeshStandardMaterial({
-    color: 0x09768a,
-    metalness: 0.83,
-    roughness: 0.2,
-  });
-  const materials = [metal, dark, lightMetal, rubber, glow, oceanBlue];
+  const materials = [
+    shell, safetyOrange, dark, lightMetal, ropeMaterial, ropeThread, glow,
+  ];
   const model = new THREE.Group();
   scene.add(model);
-  const meshes: THREE.Mesh[] = [];
   const add = (
     geo: THREE.BufferGeometry,
     material: THREE.Material,
@@ -85,83 +90,87 @@ export function createOcean(
   ) => {
     const mesh = new THREE.Mesh(geo, material);
     parent.add(mesh);
-    meshes.push(mesh);
     return mesh;
   };
-  // A custom mechanical rescue ring: machined shell, luminous seals, vented core.
-  add(new THREE.TorusGeometry(1.61, 0.23, 18, 100), metal);
-  add(
-    new THREE.TorusGeometry(1.62, 0.245, 16, 100, Math.PI * 0.23),
-    oceanBlue,
-  ).rotation.z = 0.15;
-  const arc2 = add(
-    new THREE.TorusGeometry(1.62, 0.245, 16, 100, Math.PI * 0.23),
-    oceanBlue,
-  );
-  arc2.rotation.z = Math.PI + 0.15;
-  add(new THREE.TorusGeometry(1.81, 0.026, 8, 120), lightMetal).position.z =
-    0.05;
-  add(new THREE.TorusGeometry(1.42, 0.035, 10, 120), glow).position.z = 0.18;
-  add(new THREE.TorusGeometry(1.3, 0.075, 12, 100), rubber).position.z = 0.08;
-  const inner = new THREE.Group();
-  model.add(inner);
-  add(new THREE.TorusGeometry(0.98, 0.095, 14, 90), dark, inner).position.z =
-    -0.07;
-  add(new THREE.TorusGeometry(0.85, 0.018, 8, 100), glow, inner).position.z =
-    0.04;
-  const core = add(new THREE.CylinderGeometry(0.5, 0.5, 0.28, 12), metal);
-  core.rotation.x = Math.PI / 2;
-  core.position.z = 0.07;
-  const face = add(new THREE.CylinderGeometry(0.385, 0.385, 0.03, 6), glow);
-  face.rotation.x = Math.PI / 2;
-  face.position.z = 0.24;
-  const hex = add(new THREE.TorusGeometry(0.28, 0.025, 6, 6), dark);
-  hex.position.z = 0.27;
-  add(new THREE.TorusGeometry(0.18, 0.015, 6, 6), lightMetal).position.z =
-    0.275;
-  for (let i = 0; i < 12; i++) {
-    const angle = (i / 12) * Math.PI * 2;
-    const spoke = add(
-      new THREE.BoxGeometry(0.105, 0.61, 0.14),
-      i % 3 ? dark : lightMetal,
-      inner,
-    );
-    spoke.position.set(Math.sin(angle) * 0.7, Math.cos(angle) * 0.7, -0.05);
-    spoke.rotation.z = -angle;
-    const bolt = add(
-      new THREE.CylinderGeometry(0.052, 0.052, 0.055, 6),
-      lightMetal,
-    );
-    bolt.rotation.x = Math.PI / 2;
-    bolt.position.set(Math.sin(angle) * 1.63, Math.cos(angle) * 1.63, 0.24);
-    const inset = add(new THREE.BoxGeometry(0.047, 0.017, 0.006), dark);
-    inset.position.copy(bolt.position);
-    inset.position.z += 0.03;
-    inset.rotation.z = angle;
-  }
-  for (let i = 0; i < 48; i++) {
-    const angle = (i / 48) * Math.PI * 2;
-    const vent = add(
-      new THREE.BoxGeometry(0.048, 0.15, 0.055),
-      i % 4 === 0 ? glow : rubber,
-    );
-    vent.position.set(Math.sin(angle) * 1.63, Math.cos(angle) * 1.63, 0.218);
-    vent.rotation.z = -angle;
-  }
+
+  // A flotation body with an open centre, four safety panels and a grab line.
+  // Nothing crosses the hole: the silhouette should read as a lifebuoy at once.
+  const body = add(new THREE.TorusGeometry(1.43, 0.395, 28, 120), shell);
+  body.scale.z = 0.82;
+  const seam = add(new THREE.TorusGeometry(1.822, 0.012, 6, 120), dark);
+  seam.position.z = -0.025;
   for (let i = 0; i < 4; i++) {
-    const angle = (i * Math.PI) / 2 + Math.PI / 4;
-    const clamp = add(new THREE.BoxGeometry(0.36, 0.49, 0.38), dark);
-    clamp.position.set(Math.sin(angle) * 1.65, Math.cos(angle) * 1.65, -0.09);
-    clamp.rotation.z = -angle;
-    const strip = add(new THREE.BoxGeometry(0.19, 0.045, 0.39), glow);
-    strip.position.copy(clamp.position);
-    strip.rotation.z = -angle;
+    const angle = Math.PI / 4 + i * Math.PI / 2;
+    const panel = add(
+      new THREE.TorusGeometry(1.43, 0.401, 24, 18, 0.58),
+      safetyOrange,
+    );
+    panel.rotation.z = angle - 0.29;
+    panel.scale.z = 0.82;
+    for (const edge of [-0.21, 0.18]) {
+      const tape = add(
+        new THREE.TorusGeometry(1.43, 0.406, 20, 3, 0.035),
+        shell,
+      );
+      tape.rotation.z = angle + edge;
+      tape.scale.z = 0.82;
+    }
+    const anchor = add(new THREE.BoxGeometry(0.17, 0.13, 0.13), dark);
+    anchor.position.set(Math.cos(angle) * 1.8, Math.sin(angle) * 1.8, 0.02);
+    anchor.rotation.z = angle;
+    const eye = add(new THREE.TorusGeometry(0.075, 0.016, 6, 16), lightMetal);
+    eye.position.set(Math.cos(angle) * 1.91, Math.sin(angle) * 1.91, 0.025);
+    const marker = add(new THREE.BoxGeometry(0.08, 0.018, 0.015), glow);
+    marker.position.set(Math.cos(angle) * 1.74, Math.sin(angle) * 1.74, 0.2);
+    marker.rotation.z = angle;
   }
-  // Fine orbital lines link the metal object to a drafting-board aesthetic.
+  const ropePoints: THREE.Vector3[] = [];
+  const threadPoints: THREE.Vector3[] = [];
+  for (let i = 0; i < 512; i++) {
+    const angle = i / 512 * Math.PI * 2;
+    const radius = 1.97 + 0.07 * Math.cos(4 * angle);
+    ropePoints.push(new THREE.Vector3(
+      Math.cos(angle) * radius, Math.sin(angle) * radius, 0.025,
+    ));
+    const twist = angle * 96;
+    threadPoints.push(new THREE.Vector3(
+      Math.cos(angle) * (radius + Math.cos(twist) * 0.03),
+      Math.sin(angle) * (radius + Math.cos(twist) * 0.03),
+      0.025 + Math.sin(twist) * 0.03,
+    ));
+  }
+  add(new THREE.TubeGeometry(
+    new THREE.CatmullRomCurve3(ropePoints, true), 256, 0.036, 7, true,
+  ), ropeMaterial);
+  add(new THREE.TubeGeometry(
+    new THREE.CatmullRomCurve3(threadPoints, true), 640, 0.007, 4, true,
+  ), ropeThread);
+
+  const labelCanvas = document.createElement("canvas");
+  labelCanvas.width = 512;
+  labelCanvas.height = 128;
+  const labelContext = labelCanvas.getContext("2d");
+  if (labelContext) {
+    labelContext.fillStyle = "#23454b";
+    labelContext.font = "700 80px sans-serif";
+    labelContext.textAlign = "center";
+    labelContext.textBaseline = "middle";
+    labelContext.fillText("RESCUE", 256, 64);
+  }
+  const labelTexture = new THREE.CanvasTexture(labelCanvas);
+  labelTexture.colorSpace = THREE.SRGBColorSpace;
+  const labelMaterial = new THREE.MeshBasicMaterial({
+    map: labelTexture,
+    transparent: true,
+    depthWrite: false,
+  });
+  const label = add(new THREE.PlaneGeometry(0.76, 0.19), labelMaterial);
+  label.position.set(0, 1.42, 0.335);
+  // Fine orbital lines retain the technical drawing detail around the buoy.
   const orbitMaterial = new THREE.LineBasicMaterial({
     color: 0x63c9d5,
     transparent: true,
-    opacity: 0.23,
+    opacity: 0.16,
   });
   const orbitGroup = new THREE.Group();
   model.add(orbitGroup);
@@ -182,82 +191,166 @@ export function createOcean(
     line.rotation.y = i ? -0.4 : 0.2;
     orbitGroup.add(line);
   }
-  const uniforms = {
-    uTime: { value: 0 },
-    uBlueprint: { value: 0 },
-    uColor: { value: new THREE.Color(0x073f57) },
-  };
-  const waterMaterial = new THREE.ShaderMaterial({
-    uniforms,
-    vertexShader: `
-      uniform float uTime;
-      varying vec3 vPos;
-      varying vec3 vNormalWave;
-      float wave(vec2 p) {
-        return sin(p.x*.58+uTime*.53)*.24+sin(p.y*.68+uTime*.35+p.x*.21)*.22
-          +sin(p.x*1.6+p.y*1.1-uTime*.4)*.08+sin(p.x*3.7-p.y*2.3+uTime*.8)*.028;
-      }
-      void main() {
-        vec3 p=position;
-        p.z=wave(p.xy);
-        float e=.03;
-        vNormalWave=normalize(vec3((wave(p.xy-vec2(e,0.))-wave(p.xy+vec2(e,0.)))/(2.*e),(wave(p.xy-vec2(0.,e))-wave(p.xy+vec2(0.,e)))/(2.*e),1.));
-        vPos=p;
-        gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);
-      }`,
-    fragmentShader: `
-      uniform float uTime;
-      uniform float uBlueprint;
-      varying vec3 vPos;
-      varying vec3 vNormalWave;
-      void main() {
-        vec3 n=normalize(vNormalWave);
-        float spec=pow(max(dot(n,normalize(vec3(.2,.3,1.))),0.),85.);
-        float spec2=pow(max(dot(n,normalize(vec3(-.3,.15,1.))),0.),160.);
-        float crest=smoothstep(.16,.49,vPos.z);
-        vec3 col=mix(vec3(.014,.075,.12),vec3(.027,.24,.32),n.z*.5+crest*.5);
-        col+=vec3(.17,.54,.63)*spec*.9+vec3(.17,.54,.48)*spec2*.6;
-        float grid=step(.96,fract(vPos.x*1.5))+step(.96,fract(vPos.y*1.5));
-        col=mix(col,vec3(.035,.13,.20)+vec3(.05,.24,.3)*min(grid,1.),uBlueprint);
-        float fog=smoothstep(4.,21.,length(vPos.xy));
-        col=mix(col,vec3(.022,.10,.14),fog);
-        gl_FragColor=vec4(col,1.);
-        #include <tonemapping_fragment>
-        #include <colorspace_fragment>
-      }`,
-    side: THREE.DoubleSide,
+  // Reflector renders only the scene above the mean water plane into a small
+  // target. Its own mesh is hidden during that pass, so water never recurses.
+  // This is planar reflection with wave distortion, not ray tracing.
+  const water = new Reflector(new THREE.PlaneGeometry(64, 64, 176, 176), {
+    textureWidth: 512,
+    textureHeight: 512,
+    multisample: 0,
+    clipBias: 0.004,
+    shader: {
+      name: "OceanSurface",
+      uniforms: {
+        tDiffuse: { value: null },
+        color: { value: new THREE.Color(0x073f57) },
+        textureMatrix: { value: new THREE.Matrix4() },
+        uTime: { value: 0 },
+        uBlueprint: { value: 0 },
+      },
+      vertexShader: `
+        uniform float uTime;
+        uniform mat4 textureMatrix;
+        varying vec3 vWorldPosition;
+        varying vec3 vWaveNormal;
+        varying vec2 vSurface;
+        varying vec4 vReflection;
+        varying float vCrest;
+
+        void gerstner(vec2 at, vec2 direction, float wavelength,
+          float steepness, float phase, inout vec3 p,
+          inout vec3 tangent, inout vec3 binormal) {
+          vec2 d = normalize(direction);
+          float k = 6.2831853 / wavelength;
+          float speed = sqrt(9.81 / k);
+          float f = k * (dot(d, at) - speed * uTime * 0.55) + phase;
+          float s = sin(f);
+          float c = cos(f);
+          float amplitude = steepness / k;
+          p += vec3(d * amplitude * c, amplitude * s);
+          tangent += vec3(-d * d.x * steepness * s, d.x * steepness * c);
+          binormal += vec3(-d * d.y * steepness * s, d.y * steepness * c);
+        }
+
+        void main() {
+          vec3 p = position;
+          vec3 tangent = vec3(1.0, 0.0, 0.0);
+          vec3 binormal = vec3(0.0, 1.0, 0.0);
+          gerstner(position.xy, vec2(1.0, 0.35), 8.2, 0.26, 0.2, p, tangent, binormal);
+          gerstner(position.xy, vec2(0.75, -0.65), 4.6, 0.2, 2.4, p, tangent, binormal);
+          gerstner(position.xy, vec2(-0.3, 1.0), 2.8, 0.13, 1.1, p, tangent, binormal);
+          gerstner(position.xy, vec2(0.9, 0.5), 1.65, 0.07, 4.7, p, tangent, binormal);
+          gerstner(position.xy, vec2(-0.65, 0.8), 1.05, 0.035, 3.0, p, tangent, binormal);
+          vSurface = p.xy;
+          vCrest = p.z;
+          vWaveNormal = normalize(mat3(modelMatrix) * normalize(cross(tangent, binormal)));
+          vec4 world = modelMatrix * vec4(p, 1.0);
+          vWorldPosition = world.xyz;
+          // Project the actual displaced surface into the mirrored camera.
+          vReflection = textureMatrix * vec4(p, 1.0);
+          gl_Position = projectionMatrix * viewMatrix * world;
+        }`,
+      fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform float uTime;
+        uniform float uBlueprint;
+        varying vec3 vWorldPosition;
+        varying vec3 vWaveNormal;
+        varying vec2 vSurface;
+        varying vec4 vReflection;
+        varying float vCrest;
+
+        vec2 ripple(vec2 p, vec2 direction, float frequency,
+          float amplitude, float speed, float footprint) {
+          vec2 d = normalize(direction);
+          float phase = dot(d, p) * frequency + uTime * speed;
+          // Fade subpixel ripples instead of sparkling/aliasing at the horizon.
+          float filterWidth = frequency * footprint;
+          float filtered = exp(-filterWidth * filterWidth * 0.6);
+          return d * cos(phase) * amplitude * frequency * filtered;
+        }
+
+        vec3 sky(vec3 direction) {
+          float up = clamp(direction.y, 0.0, 1.0);
+          vec3 horizon = vec3(0.19, 0.37, 0.42);
+          vec3 zenith = vec3(0.017, 0.07, 0.115);
+          vec3 result = mix(horizon, zenith, pow(up, 0.48));
+          float clouds = sin(direction.x * 8.0 + direction.z * 5.0)
+            * sin(direction.z * 14.0 - direction.x * 3.0);
+          result += vec3(0.055, 0.065, 0.068) * smoothstep(0.12, 0.65, clouds)
+            * smoothstep(0.03, 0.3, up);
+          return result;
+        }
+
+        void main() {
+          float distanceToEye = length(cameraPosition - vWorldPosition);
+          vec3 viewDirection = normalize(cameraPosition - vWorldPosition);
+          float footprint = max(length(dFdx(vSurface)), length(dFdy(vSurface)));
+          vec2 smallWaves = vec2(0.0);
+          smallWaves += ripple(vSurface, vec2(1.0, 0.23), 7.8, 0.011, -1.3, footprint);
+          smallWaves += ripple(vSurface, vec2(0.75, -0.8), 12.3, 0.0055, 1.7, footprint);
+          smallWaves += ripple(vSurface, vec2(-0.2, 1.0), 19.5, 0.003, -2.1, footprint);
+          smallWaves += ripple(vSurface, vec2(0.95, 0.4), 31.0, 0.0015, 2.8, footprint);
+          vec3 n = normalize(vWaveNormal + vec3(-smallWaves.x, 0.0, smallWaves.y));
+          float facing = max(dot(n, viewDirection), 0.0);
+          float fresnel = 0.0204 + 0.9796 * pow(1.0 - facing, 5.0);
+          vec3 reflectedDirection = reflect(-viewDirection, n);
+          vec3 reflectedSky = sky(reflectedDirection);
+
+          vec2 reflectionUV = vReflection.xy / vReflection.w;
+          reflectionUV += n.xz * 0.035 / max(1.0, distanceToEye * 0.12);
+          vec4 reflectedScene = texture2D(tDiffuse, clamp(reflectionUV, 0.002, 0.998));
+          vec3 reflection = mix(reflectedSky, reflectedScene.rgb, reflectedScene.a);
+
+          // More light transmits through the wave shoulders than the troughs.
+          float shoulder = smoothstep(-0.25, 0.52, vCrest);
+          vec3 deepWater = vec3(0.004, 0.033, 0.047);
+          vec3 shallowLight = vec3(0.012, 0.105, 0.12);
+          vec3 waterColor = mix(deepWater, shallowLight, shoulder * 0.65);
+          vec3 color = mix(waterColor, reflection, fresnel);
+          vec3 sunDirection = normalize(vec3(-0.42, 0.48, -0.77));
+          vec3 halfDirection = normalize(sunDirection + viewDirection);
+          float highlight = pow(max(dot(n, halfDirection), 0.0), 180.0);
+          float sheen = pow(max(dot(n, halfDirection), 0.0), 24.0);
+          color += vec3(0.65, 0.84, 0.86) * highlight * 0.85;
+          color += vec3(0.045, 0.105, 0.12) * sheen;
+
+          // Sparse whitecaps belong only on the highest, steepest crests.
+          float breakup = sin(vSurface.x * 15.0 + sin(vSurface.y * 9.0))
+            * sin(vSurface.y * 18.0 - uTime * 0.7);
+          float foam = smoothstep(0.42, 0.61, vCrest)
+            * smoothstep(0.04, 0.2, 1.0 - n.y)
+            * smoothstep(0.15, 0.65, breakup);
+          color = mix(color, vec3(0.34, 0.51, 0.52), foam * 0.55);
+          float fog = 1.0 - exp(-distanceToEye * distanceToEye * 0.00018);
+          color = mix(color, vec3(0.023, 0.082, 0.104), fog);
+
+          vec2 gridPosition = vSurface * 1.5;
+          vec2 grid = abs(fract(gridPosition - 0.5) - 0.5)
+            / max(fwidth(gridPosition), vec2(0.001));
+          float line = 1.0 - min(min(grid.x, grid.y), 1.0);
+          vec3 blueprint = vec3(0.018, 0.067, 0.1) + vec3(0.04, 0.2, 0.25) * line;
+          color = mix(color, blueprint, uBlueprint);
+          gl_FragColor = vec4(color, 1.0);
+          #include <tonemapping_fragment>
+          #include <colorspace_fragment>
+        }`,
+    },
   });
-  const water = new THREE.Mesh(
-    new THREE.PlaneGeometry(65, 65, 200, 200),
-    waterMaterial,
-  );
   water.rotation.x = -Math.PI / 2;
   water.position.y = -2.25;
   scene.add(water);
-  const particlesGeo = new THREE.BufferGeometry();
-  const positions = new Float32Array(100 * 3);
-  for (let i = 0; i < 100; i++) {
-    const a = i * 2.399;
-    positions[i * 3] = Math.sin(a) * (2 + (i % 13));
-    positions[i * 3 + 1] = (i % 17) / 2 - 2;
-    positions[i * 3 + 2] = Math.cos(a) * 8 - 3;
-  }
-  particlesGeo.setAttribute(
-    "position",
-    new THREE.BufferAttribute(positions, 3),
-  );
-  const particlesMaterial = new THREE.PointsMaterial({
-    color: 0xb3f8ed,
-    size: 0.018,
-    transparent: true,
-    opacity: 0.5,
-  });
-  const particles = new THREE.Points(particlesGeo, particlesMaterial);
-  scene.add(particles);
+  const waterMaterial = water.material as THREE.ShaderMaterial;
+  const uniforms = waterMaterial.uniforms;
 
   let mobile = false;
+  let viewportWidth = 0, viewportHeight = 0;
   const resize = () => {
     const { width, height } = container.getBoundingClientRect();
+    if (width <= 0 || height <= 0) return;
+    if (width === viewportWidth && height === viewportHeight) return;
+    viewportWidth = width;
+    viewportHeight = height;
     mobile = width < 600;
     renderer.setSize(width, height);
     camera.aspect = width / height;
@@ -289,9 +382,7 @@ export function createOcean(
       -0.38 + pointerX * 0.1 + Math.sin(time * 0.15) * 0.09,
       -0.22 + Math.sin(time * 0.2) * 0.035,
     );
-    inner.rotation.z = time * 0.07;
     orbitGroup.rotation.z = time * -0.02;
-    particles.rotation.y = time * 0.006;
     uniforms.uTime.value = time;
     uniforms.uBlueprint.value = blueprint ? 1 : 0;
     renderer.render(scene, camera);
@@ -325,7 +416,7 @@ export function createOcean(
     ) {
       previous = performance.now();
       frame = requestAnimationFrame(tick);
-    } else renderFrame();
+    }
   };
   const pointer = (event: PointerEvent) => {
     if (paused() || event.pointerType !== "mouse") return;
@@ -333,6 +424,7 @@ export function createOcean(
     pointerY = (event.clientY / window.innerHeight) * 2 - 1;
   };
   const observer = new IntersectionObserver(([entry]) => {
+    if (visible === entry.isIntersecting) return;
     visible = entry.isIntersecting;
     sync();
   });
@@ -355,14 +447,17 @@ export function createOcean(
   sync();
   return {
     setBlueprint(value) {
+      if (blueprint === value) return;
       blueprint = value;
       materials.forEach((m) => {
         m.wireframe = value;
       });
-      orbitMaterial.opacity = value ? 0.65 : 0.23;
+      label.visible = !value;
+      orbitMaterial.opacity = value ? 0.65 : 0.16;
       renderFrame();
     },
     setPaused(value) {
+      if (userPaused === value) return;
       userPaused = value;
       sync();
     },
@@ -386,9 +481,10 @@ export function createOcean(
       });
       geometries.forEach((g) => g.dispose());
       materials.forEach((m) => m.dispose());
-      waterMaterial.dispose();
+      water.dispose();
+      labelMaterial.dispose();
+      labelTexture.dispose();
       orbitMaterial.dispose();
-      particlesMaterial.dispose();
       env.dispose();
       renderer.dispose();
       renderer.domElement.remove();

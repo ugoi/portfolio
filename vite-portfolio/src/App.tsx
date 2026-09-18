@@ -99,9 +99,6 @@ function App() {
           {!sceneReady && (
             <div className="fallback-art" aria-hidden="true">
               <div />
-              <div />
-              <div />
-              <span>SD</span>
             </div>
           )}
           <div className="hero-shade" aria-hidden="true" />
