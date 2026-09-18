@@ -1,12 +1,11 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
-import tailwindcss from "@tailwindcss/vite";
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react()],
   build: {
-    sourcemap: true,
+    sourcemap: false,
     rollupOptions: {
       output: {
         assetFileNames: "assets/[name]-[hash][extname]",
@@ -22,7 +21,7 @@ export default defineConfig({
     reportCompressedSize: false, // Speeds up build
   },
   server: {
-    host: true, // Listen on all network interfaces
+    host: "127.0.0.1", // Listen on all network interfaces
     port: 5173,
     headers: {
       "X-Content-Type-Options": "nosniff",

@@ -1,110 +1,73 @@
-# Stefan Dukic's Portfolio
+# Stefan Dukic — In meinem Element
 
-Welcome to my personal portfolio website! This modern, responsive web application showcases my projects and professional journey as a full-stack developer and AI enthusiast.
+Personal website combining water, hands-on work and technology. Built with React,
+TypeScript, Vite, static prerendering and a custom Three.js ocean / mechanical ring.
+The original portfolio is preserved in Git history.
 
-## 🌟 Features
+## Development
 
-- Modern, responsive design with smooth animations
-- Dark mode optimized interface
-- Project showcase with detailed descriptions
-- Interactive UI elements
-- Fast loading and optimized performance
-- SEO friendly
-- Video streaming capabilities with HLS support
-- TypeScript for enhanced type safety
-
-## 🛠️ Tech Stack
-
-- **Frontend Framework**: React with TypeScript
-- **Build Tool**: Vite 6.1
-- **Styling**: TailwindCSS 4.0
-- **Video Streaming**: HLS.js
-- **Type Checking**: TypeScript 5.7
-- **Linting**: ESLint 9
-- **Development Tools**:
-  - SWC (via @vitejs/plugin-react-swc) for fast refresh
-  - React Developer Tools
-  - TypeScript ESLint integration
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Node.js (v18 or higher recommended)
-- npm or yarn
-
-### Installation
-
-1. Clone the repository:
-
-   ```bash
-   git clone https://github.com/ugoi/vite-portfolio.git
-   cd vite-portfolio
-   ```
-
-2. Install dependencies:
-
-   ```bash
-   npm install
-   # or
-   yarn install
-   ```
-
-3. Start the development server:
-   ```bash
-   npm run dev
-   # or
-   yarn dev
-   ```
-
-The site will be available at `http://localhost:5173`
-
-### Available Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production (includes TypeScript build)
-- `npm run preview` - Preview production build locally
-- `npm run lint` - Run ESLint checks
-
-## 📁 Project Structure
-
-```
-vite-portfolio/
-├── src/               # Source code
-│   ├── components/    # React components
-│   └── assets/       # Static assets
-├── public/           # Public assets
-├── dist/            # Production build output
-├── index.html       # Entry HTML file
-├── vite.config.ts   # Vite configuration
-├── tsconfig.json    # TypeScript configuration
-├── eslint.config.js # ESLint configuration
-└── package.json     # Project dependencies and scripts
+```sh
+npm ci
+npm run dev
+npm run build
+npm run lint
+npm run preview -- --host 127.0.0.1 --port 5186
 ```
 
-## 🔧 Configuration Files
+Production output: `dist/`. The existing Vercel project uses this directory
+(`vite-portfolio`) as its root. No runtime secrets or backend are required.
 
-- `vite.config.ts` - Vite bundler configuration
-- `tsconfig.json` - TypeScript compiler settings
-- `eslint.config.js` - ESLint rules and plugins
-- `tsconfig.node.json` - TypeScript settings for Node.js environment
-- `tsconfig.app.json` - Application-specific TypeScript settings
+## Behavior
 
-## 🤝 Contact
+- Procedural 3D scene loads independently of the static page content.
+- Ozean / Bauplan switches the real scene between shaded and wireframe modes.
+- Animation respects reduced-motion settings, can be paused, and stops when the
+  hero leaves the viewport or the tab is hidden. Rendering is capped at about 30 fps.
+- A CSS illustration remains when WebGL is unavailable or its context is lost.
+- Images, fonts and geometry are served locally; there is no Bunny dependency,
+  external font request, analytics script or AI chatbot in the new page.
+- `sw.js` retires only the previous `stefan-portfolio-*` caches and unregisters
+  itself so returning visitors are not stuck on the old cache-first website.
+- The public contact email is retained from the previously published site.
 
-- Email: [codecraftingpro@gmail.com](mailto:codecraftingpro@gmail.com)
-- LinkedIn: [Stefan Dukic](https://www.linkedin.com/in/stefan-dukic-68682b20b/)
-- GitHub: [@ugoi](https://github.com/ugoi)
+## Assets
 
-## 📄 License
+Existing photos are retained from this repository. Space Grotesk is self-hosted
+under the SIL Open Font License; see `public/fonts/OFL.txt`. The mechanical object,
+water shader and CSS illustrations are original procedural work.
 
-This project is open source and available under the [MIT License](LICENSE).
+## Visual research
 
-## 🙏 Acknowledgments
+- https://bruno-simon.com/ — an interactive Three.js world, with source and rendering notes.
+- https://www.bluemarinefoundation.com/the-sea-we-breathe/ — ocean-led storytelling.
+- https://immersive-g.com/ — cinematic art direction and transitions.
+- https://threejs.org/examples/webgl_shaders_ocean.html — official water-rendering example.
 
-Special thanks to:
+Native web search and Brave Search were used. A bounded Brave Research pass was
+also attempted; it returned search leads but no final answer within its limits.
+No reference artwork, model or proprietary source code was copied.
 
-- The React team for their excellent framework
-- Vite team for the blazing fast build tool
-- TailwindCSS team for the utility-first CSS framework
-- All contributors and supporters of this project
+## Verification (2026-09-18)
+
+Production build and ESLint pass. Desktop and 390 px mobile screenshots inspected.
+The personal browser has WebGL disabled, so its CSS fallback was checked there;
+the real WebGL scene was tested in an isolated Chromium process with SwiftShader,
+without changing the personal profile. This does not establish iPhone/Safari
+performance. Images, anchor targets, absence of external asset requests and
+horizontal overflow are checked in the browser.
+
+`npm audit fix` removed the original high-severity dependency findings. Three
+moderate findings remain in the existing `vite-react-ssg` / React Router dependency
+chain, for which npm reports no fix. This is a statically generated single page,
+without router Link components, remote loader data or a live SSR backend.
+
+## Hosting and rollback
+
+Vercel project: `ugois-projects/portfolio`. Cloudflare fronts the domain.
+The redesign does not require DNS changes. The prior main commit is
+`204138db52b6acc615c14fdef05867e6608f7b81`.
+Deploy the reviewed branch as a Vercel preview; production can then use the same
+build. Roll back by promoting the previous successful Vercel deployment, or by
+reverting the redesign commit and allowing the existing Git integration to build.
+Do not delete Bunny storage or old DNS records merely because the new page no
+longer uses them; other consumers have not been inventoried.
