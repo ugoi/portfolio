@@ -1,363 +1,47 @@
-<!DOCTYPE html>
-<html lang="en" style="background-color: var(--color-background)">
+<!doctype html>
+<html lang="de">
   <head>
     <meta charset="UTF-8" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="preload"
-      as="style"
-      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz@0,14..32;1,14..32&display=swap&text=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,!%&*()-%20"
-    />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz@0,14..32;1,14..32&display=swap&text=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,!%&*()-%20"
-      media="print"
-      onload="this.media='all'"
-    />
-    <noscript>
-      <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz@0,14..32;1,14..32&display=swap&text=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,!%&*()-%20"
-      />
-    </noscript>
-    <link
-      rel="icon"
-      type="image/svg+xml"
-      href="https://cdn.stefandukic.com/favicon.svg"
-    />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Preload critical LCP image -->
-    <link
-      rel="preload"
-      as="image"
-      href="https://cdn.stefandukic.com/images/stefan-portrait-175.webp"
-      type="image/webp"
-      fetchpriority="high"
-    />
-
-    <!-- Primary Meta Tags -->
-    <title>Stefan Dukic | Portfolio</title>
-    <meta name="title" content="Stefan Dukic | Portfolio" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#041012" />
+    <title>Stefan Dukic — In meinem Element</title>
     <meta
       name="description"
-      content="Stefan Dukic - Full-stack developer & AI enthusiast. Former Audi AG engineer with expertise in React, TypeScript, Node.js. Explore 7+ innovative projects including dating platforms, multiplayer games, and IRC servers."
+      content="Wasser im Blut. Technik im Kopf. Stefan Dukic — Bademeister, Macher und neugieriger Kopf aus Zürich."
     />
-    <meta
-      name="keywords"
-      content="Stefan Dukic, Full Stack Developer, Web Development, AI, React, TypeScript, Portfolio, Software Engineer"
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href="https://stefandukic.com/" />
+    <link
+      rel="preload"
+      href="/fonts/space-grotesk-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
-    <meta name="author" content="Stefan Dukic" />
-    <meta name="robots" content="index, follow" />
-
-    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://stefandukic.com/" />
-    <meta property="og:title" content="Stefan Dukic | Portfolio" />
+    <meta property="og:title" content="Stefan Dukic — In meinem Element" />
     <meta
       property="og:description"
-      content="Portfolio of Stefan Dukic: Full-stack developer with experience at Audi AG and 42 Lausanne. Specializing in React, TypeScript, AI integration, and modern web technologies."
+      content="Bademeister von Beruf. Macher aus Überzeugung. Wasser, Handwerk und Technik."
     />
     <meta
       property="og:image"
-      content="https://cdn.stefandukic.com/images/stefan-portrait-175.jpeg"
+      content="https://stefandukic.com/images/stefan-greece.jpeg"
     />
-
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://stefandukic.com/" />
-    <meta property="twitter:title" content="Stefan Dukic | Portfolio" />
-    <meta
-      property="twitter:description"
-      content="Portfolio of Stefan Dukic: Full-stack developer with experience at Audi AG and 42 Lausanne. Specializing in React, TypeScript, AI integration, and modern web technologies."
-    />
-    <meta
-      property="twitter:image"
-      content="https://cdn.stefandukic.com/images/stefan-portrait-175.jpeg"
-    />
-
-    <!-- Theme Color for browsers -->
-    <meta name="theme-color" content="#18181B" />
-
-    <!-- Canonical URL -->
-    <link rel="canonical" href="https://stefandukic.com/" />
-
-    <!-- Structured Data - Person Schema -->
+    <meta name="twitter:card" content="summary_large_image" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "Person",
         "name": "Stefan Dukic",
-        "jobTitle": "Full-Stack Developer & AI Enthusiast",
-        "description": "Full-stack developer and AI enthusiast specializing in React, TypeScript, and modern web technologies. Former Software Engineer at Audi AG with expertise in REST APIs, CI/CD pipelines, and blockchain solutions.",
-        "url": "https://stefandukic.com",
-        "image": "https://cdn.stefandukic.com/images/stefan-portrait-220.webp",
-        "sameAs": [
-          "https://www.linkedin.com/in/stefan-dukic-68682b20b/",
-          "https://github.com/ugoi"
-        ],
-        "email": "codecraftingpro@gmail.com",
-        "alumniOf": [
-          {
-            "@type": "Organization",
-            "name": "42 Lausanne",
-            "description": "Mastery in Software Engineering"
-          },
-          {
-            "@type": "Organization",
-            "name": "42 Heilbronn",
-            "description": "Core Curriculum in Software Engineering"
-          },
-          {
-            "@type": "Organization",
-            "name": "Kantonsschule Romanshorn",
-            "description": "Secondary Education"
-          }
-        ],
-        "worksFor": {
-          "@type": "Organization",
-          "name": "42 Lausanne"
-        },
-        "knowsAbout": [
-          "React",
-          "TypeScript",
-          "Node.js",
-          "Express",
-          "NestJS",
-          "PostgreSQL",
-          "AI",
-          "Machine Learning",
-          "OpenAI API",
-          "Full Stack Development",
-          "Web Development",
-          "Software Engineering",
-          "REST APIs",
-          "CI/CD",
-          "Blockchain",
-          "WebSocket",
-          "Docker",
-          "Git",
-          "JavaScript",
-          "Python",
-          "C",
-          "C++",
-          "Java",
-          "Swift",
-          "Flutter",
-          "SwiftUI"
-        ],
-        "hasOccupation": {
-          "@type": "Occupation",
-          "name": "Software Engineer",
-          "occupationLocation": {
-            "@type": "Country",
-            "name": "Switzerland"
-          }
-        },
-        "nationality": "Serbian",
-        "address": {
-          "@type": "PostalAddress",
-          "addressCountry": "CH"
-        }
-      }
-    </script>
-
-    <!-- Project Schema Markup -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "ItemList",
-        "name": "Stefan Dukic's Portfolio Projects",
-        "description": "A collection of innovative software projects showcasing full-stack development, AI integration, and modern web technologies",
-        "itemListElement": [
-          {
-            "@type": "CreativeWork",
-            "position": 1,
-            "name": "Matcha - Dating Platform",
-            "description": "A full-featured dating platform with real-time matching and communication. Features include user profiles with photos and interests, GPS-based location matching, real-time chat, and notifications.",
-            "creator": {
-              "@type": "Person",
-              "name": "Stefan Dukic"
-            },
-            "programmingLanguage": [
-              "Express",
-              "React",
-              "TypeScript",
-              "PostgreSQL",
-              "WebSocket",
-              "OAuth2"
-            ],
-            "url": "https://github.com/ugoi/Matcha",
-            "dateCreated": "2024",
-            "genre": "Web Application",
-            "applicationCategory": "Social Networking"
-          },
-          {
-            "@type": "CreativeWork",
-            "position": 2,
-            "name": "ft_transcendence - Multiplayer Arcade Game",
-            "description": "A multiplayer online game project that combines classic arcade games like Pong and Breakout with modern features. Includes special abilities, power-ups, leveling system, real-time matches, ranking system, and matchmaking functionality.",
-            "creator": {
-              "@type": "Person",
-              "name": "Stefan Dukic"
-            },
-            "programmingLanguage": [
-              "NestJS",
-              "React",
-              "Docker",
-              "PostgreSQL",
-              "WebSocket",
-              "TypeScript"
-            ],
-            "url": "https://github.com/FVNRLS/ft_transcendence",
-            "dateCreated": "2024",
-            "genre": "Video Game",
-            "applicationCategory": "Entertainment"
-          },
-          {
-            "@type": "CreativeWork",
-            "position": 3,
-            "name": "ft_irc - IRC Server",
-            "description": "A robust Internet Relay Chat server implementation in C++98. Features include multi-client support, channel management, private messaging, operator commands, and non-blocking I/O operations.",
-            "creator": {
-              "@type": "Person",
-              "name": "Stefan Dukic"
-            },
-            "programmingLanguage": [
-              "C++98",
-              "TCP/IP",
-              "Socket Programming",
-              "Non-blocking I/O"
-            ],
-            "url": "https://github.com/Qfinel/42School_ft_irc",
-            "dateCreated": "2024",
-            "genre": "Server Software",
-            "applicationCategory": "Communication"
-          }
-        ]
-      }
-    </script>
-
-    <!-- FAQ Schema -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "FAQPage",
-        "mainEntity": [
-          {
-            "@type": "Question",
-            "name": "What technologies does Stefan Dukic specialize in?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Stefan specializes in React, TypeScript, Node.js, Express, NestJS, PostgreSQL, AI/ML technologies, and full-stack development. He has extensive experience with both frontend (React, Flutter, SwiftUI) and backend (Node.js, Express, NestJS) technologies, as well as AI integration using OpenAI API and machine learning workflows."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "What is Stefan Dukic's professional background?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Stefan is a former Software Engineer at Audi AG (Nov 2023 - Apr 2024) where he developed REST APIs and managed CI/CD pipelines. He also worked at Veri School (Feb 2022 - Oct 2022) on blockchain-based solutions. Currently, he's pursuing a Mastery in Software Engineering at 42 Lausanne and was recognized as one of the quickest learners at 42 Heilbronn."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "What notable projects has Stefan Dukic built?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Stefan has built several innovative projects including Matcha (a dating platform with real-time chat), ft_transcendence (multiplayer arcade game), ft_irc (IRC server implementation), Camagru (photo editing platform), Swifty Companion (42 student info app), cub3D (ray-casting game), and ft_hangouts (contact management app)."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "Is Stefan Dukic available for freelance work?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Yes, Stefan is currently pursuing advanced studies at 42 Lausanne while being available for freelance projects and consulting opportunities. He's open to discussing full-time positions and long-term collaborations. Contact him at codecraftingpro@gmail.com for project inquiries."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "What makes Stefan Dukic's development approach unique?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Stefan combines traditional software engineering with AI integration, focusing on modern web technologies and real-time applications. His approach emphasizes test-driven development, scalable architecture, and innovative solutions. He has experience with both enterprise-level development (Audi AG) and cutting-edge technologies (blockchain, AI, real-time systems)."
-            }
-          }
-        ]
-      }
-    </script>
-
-    <!-- Organization Schema for 42 Lausanne -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "EducationalOrganization",
-        "name": "42 Lausanne",
-        "description": "A coding school offering innovative software engineering education with a peer-to-peer learning model",
-        "url": "https://42lausanne.ch",
-        "address": {
-          "@type": "PostalAddress",
-          "addressLocality": "Lausanne",
-          "addressCountry": "CH"
-        },
-        "sameAs": ["https://42lausanne.ch"]
-      }
-    </script>
-
-    <!-- Breadcrumb Schema -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-          {
-            "@type": "ListItem",
-            "position": 1,
-            "name": "Home",
-            "item": "https://stefandukic.com"
-          },
-          {
-            "@type": "ListItem",
-            "position": 2,
-            "name": "Portfolio",
-            "item": "https://stefandukic.com/#projects"
-          },
-          {
-            "@type": "ListItem",
-            "position": 3,
-            "name": "Experience",
-            "item": "https://stefandukic.com/#experience"
-          },
-          {
-            "@type": "ListItem",
-            "position": 4,
-            "name": "Contact",
-            "item": "https://stefandukic.com/#contact"
-          }
-        ]
+        "url": "https://stefandukic.com/",
+        "jobTitle": "Bademeister",
+        "description": "Wasser im Blut. Technik im Kopf."
       }
     </script>
   </head>
   <body>
-    <!-- Hidden LCP image to initiate request early -->
-    <img
-      src="https://cdn.stefandukic.com/images/stefan-portrait-175.webp"
-      alt="Stefan Dukic - Full-stack developer and AI enthusiast professional portrait"
-      fetchpriority="high"
-      style="
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        padding: 0;
-        margin: -1px;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
-        white-space: nowrap;
-        border: 0;
-      "
-      aria-hidden="true"
-    />
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
