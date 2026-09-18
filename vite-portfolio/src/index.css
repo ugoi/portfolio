@@ -747,34 +747,36 @@ h2 {
   width: 32vw;
   height: 32vw;
   border-radius: 50%;
-  border: 24px solid #396b73;
+  background: conic-gradient(
+    from 29deg,
+    #ec6536 0deg 32deg,
+    #d3e3df 32deg 90deg,
+    #ec6536 90deg 122deg,
+    #d3e3df 122deg 180deg,
+    #ec6536 180deg 212deg,
+    #d3e3df 212deg 270deg,
+    #ec6536 270deg 302deg,
+    #d3e3df 302deg 360deg
+  );
   box-shadow:
-    0 0 100px #10bfe544,
-    inset 0 0 40px #15eac788;
+    inset -12px -18px 20px #08222d77,
+    0 18px 40px #02101566;
   transform: rotate(-20deg);
-  display: grid;
-  place-items: center;
   z-index: -2;
+}
+.fallback-art::before {
+  content: "";
+  position: absolute;
+  inset: -6%;
+  border: 3px solid #b9bea9;
+  border-radius: 50%;
 }
 .fallback-art div {
   position: absolute;
-  inset: 18px;
-  border: 3px dashed #9ee6d3;
+  inset: 23%;
+  background: radial-gradient(ellipse at 30% 20%, #0b5664, #052b39);
   border-radius: 50%;
-}
-.fallback-art div:nth-child(2) {
-  inset: 45px;
-  border: 12px solid #32515b;
-}
-.fallback-art div:nth-child(3) {
-  inset: 70px;
-  border: 2px solid #9ee6d3;
-  box-shadow: 0 0 35px #15eac788;
-}
-.fallback-art span {
-  font-size: 5vw;
-  color: var(--aqua);
-  font-weight: 700;
+  box-shadow: 0 0 12px #08222d66;
 }
 .is-blueprint .hero {
   background: #052537;
@@ -1065,17 +1067,6 @@ h2 {
     right: 10%;
     width: 230px;
     height: 230px;
-    border-width: 17px;
-  }
-  .fallback-art div:nth-child(2) {
-    inset: 35px;
-    border-width: 8px;
-  }
-  .fallback-art div:nth-child(3) {
-    inset: 58px;
-  }
-  .fallback-art span {
-    font-size: 34px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1091,7 +1082,7 @@ h2 {
 }
 
 .is-blueprint .fallback-art {
-  border-style: dashed;
+  border: 2px dashed #8bddd5;
   box-shadow: none;
   background: repeating-linear-gradient(
     0deg,
