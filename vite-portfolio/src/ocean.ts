@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { Reflector } from "three/addons/objects/Reflector.js";
+import { BuoyPhysics } from "./buoyPhysics";
+import { WATER_LEVEL, WAVE_GLSL, WAVE_GLSL_CALLS, sampleWater } from "./waves";
 
 export interface OceanController {
   setBlueprint: (value: boolean) => void;
@@ -10,6 +12,7 @@ export interface OceanController {
 
 export function createOcean(
   container: HTMLDivElement,
+  interaction: HTMLDivElement,
   onUnavailable: () => void,
 ): OceanController {
   const renderer = new THREE.WebGLRenderer({
@@ -173,6 +176,7 @@ export function createOcean(
     opacity: 0.16,
   });
   const orbitGroup = new THREE.Group();
+  orbitGroup.visible = false;
   model.add(orbitGroup);
   for (let i = 0; i < 2; i++) {
     const pts = Array.from({ length: 145 }, (_, j) => {
@@ -217,30 +221,13 @@ export function createOcean(
         varying vec4 vReflection;
         varying float vCrest;
 
-        void gerstner(vec2 at, vec2 direction, float wavelength,
-          float steepness, float phase, inout vec3 p,
-          inout vec3 tangent, inout vec3 binormal) {
-          vec2 d = normalize(direction);
-          float k = 6.2831853 / wavelength;
-          float speed = sqrt(9.81 / k);
-          float f = k * (dot(d, at) - speed * uTime * 0.55) + phase;
-          float s = sin(f);
-          float c = cos(f);
-          float amplitude = steepness / k;
-          p += vec3(d * amplitude * c, amplitude * s);
-          tangent += vec3(-d * d.x * steepness * s, d.x * steepness * c);
-          binormal += vec3(-d * d.y * steepness * s, d.y * steepness * c);
-        }
+        ${WAVE_GLSL}
 
         void main() {
           vec3 p = position;
           vec3 tangent = vec3(1.0, 0.0, 0.0);
           vec3 binormal = vec3(0.0, 1.0, 0.0);
-          gerstner(position.xy, vec2(1.0, 0.35), 8.2, 0.26, 0.2, p, tangent, binormal);
-          gerstner(position.xy, vec2(0.75, -0.65), 4.6, 0.2, 2.4, p, tangent, binormal);
-          gerstner(position.xy, vec2(-0.3, 1.0), 2.8, 0.13, 1.1, p, tangent, binormal);
-          gerstner(position.xy, vec2(0.9, 0.5), 1.65, 0.07, 4.7, p, tangent, binormal);
-          gerstner(position.xy, vec2(-0.65, 0.8), 1.05, 0.035, 3.0, p, tangent, binormal);
+          ${WAVE_GLSL_CALLS}
           vSurface = p.xy;
           vCrest = p.z;
           vWaveNormal = normalize(mat3(modelMatrix) * normalize(cross(tangent, binormal)));
@@ -338,108 +325,235 @@ export function createOcean(
     },
   });
   water.rotation.x = -Math.PI / 2;
-  water.position.y = -2.25;
+  water.position.y = WATER_LEVEL;
   scene.add(water);
   const waterMaterial = water.material as THREE.ShaderMaterial;
   const uniforms = waterMaterial.uniforms;
 
-  let mobile = false;
-  let viewportWidth = 0, viewportHeight = 0;
-  const resize = () => {
-    const { width, height } = container.getBoundingClientRect();
-    if (width <= 0 || height <= 0) return;
-    if (width === viewportWidth && height === viewportHeight) return;
-    viewportWidth = width;
-    viewportHeight = height;
-    mobile = width < 600;
-    renderer.setSize(width, height);
-    camera.aspect = width / height;
-    camera.position.set(0, mobile ? 1.3 : 1.8, mobile ? 13 : 12);
-    camera.lookAt(0, -0.1, 0);
-    camera.updateProjectionMatrix();
-    model.scale.setScalar(mobile ? 0.72 : 1.12);
-    model.position.set(mobile ? 0.65 : 2.35, mobile ? -1.5 : 0.35, 0);
-    renderFrame();
-  };
-  let pointerX = 0,
-    pointerY = 0,
-    time = 0,
-    frame = 0,
-    previous = 0;
-  let visible = true,
-    blueprint = false,
-    userPaused: boolean | null = null,
-    disposed = false,
-    contextAvailable = true;
+  const physics = new BuoyPhysics({ scale: 1.12, x: 2.6, z: 1 });
+  interaction.hidden = false;
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  const hitArea = document.createElementNS(svg.namespaceURI, "path") as SVGPathElement;
+  hitArea.setAttribute("class", "buoy-hit-area");
+  hitArea.setAttribute("fill-rule", "evenodd");
+  hitArea.setAttribute("tabindex", "0");
+  hitArea.setAttribute("role", "button");
+  hitArea.setAttribute("aria-label", "Rettungsring bewegen. Ziehen oder Pfeiltasten verwenden. R setzt den Ring zurück.");
+  svg.appendChild(hitArea);
+  interaction.appendChild(svg);
+
+  let mobile = false, viewportWidth = 0, viewportHeight = 0;
+  let frame = 0, previous = 0, activePointer: number | null = null;
+  let visible = true, blueprint = false, userPaused: boolean | null = null;
+  let disposed = false, contextAvailable = true;
+  let keyboardRelease: ReturnType<typeof setTimeout> | undefined;
   const media = window.matchMedia("(prefers-reduced-motion: reduce)");
   const paused = () => userPaused ?? media.matches;
+  const raycaster = new THREE.Raycaster();
+  const pointerPosition = new THREE.Vector2();
+  const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  const target = new THREE.Vector3();
+  let grabHeight = 0;
+  const bounds = () => mobile
+    ? { minX: -0.7, maxX: 0.8, minZ: -1, maxZ: 3.2 }
+    : { minX: -3.5, maxX: 4.2, minZ: -3, maxZ: 3.5 };
+
+  // A projected SVG hit area limits touch-action:none to the ring itself.
+  // Touches elsewhere retain native page scrolling and pinch zoom.
+  type Point = { x: number; y: number };
+  const project = new THREE.Vector3();
+  const screenPoint = (x: number, y: number, z: number): Point => {
+    project.set(x, y, z).applyMatrix4(model.matrixWorld).project(camera);
+    return { x: (project.x + 1) * viewportWidth / 2, y: (1 - project.y) * viewportHeight / 2 };
+  };
+  const cross = (a: Point, b: Point, c: Point) =>
+    (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+  const hull = (points: Point[]) => {
+    points.sort((a, b) => a.x - b.x || a.y - b.y);
+    const half = (list: Point[]) => {
+      const result: Point[] = [];
+      for (const p of list) {
+        while (result.length > 1 && cross(result[result.length - 2], result[result.length - 1], p) <= 0) result.pop();
+        result.push(p);
+      }
+      return result.slice(0, -1);
+    };
+    return [...half(points), ...half([...points].reverse())];
+  };
+  const path = (points: Point[]) => points.map((p, i) =>
+    `${i ? "L" : "M"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ") + " Z";
+  const updateHitArea = () => {
+    const outer: Point[] = [], inner: Point[] = [];
+    model.updateWorldMatrix(true, false);
+    const facing = Math.abs(new THREE.Vector3(0, 0, 1).applyQuaternion(model.quaternion)
+      .dot(new THREE.Vector3().subVectors(camera.position, model.position).normalize()));
+    for (let i = 0; i < 40; i++) {
+      const angle = i / 40 * Math.PI * 2;
+      for (let j = 0; j < 4; j++) {
+        const section = j * Math.PI / 2;
+        const radius = 1.43 + 0.41 * Math.cos(section);
+        outer.push(screenPoint(Math.cos(angle) * radius, Math.sin(angle) * radius, Math.sin(section) * 0.34));
+      }
+      // Keep the cutout smaller than the projected opening: its near wall
+      // occludes part of the hole at this grazing camera angle.
+      if (facing > 0.45) inner.push(screenPoint(Math.cos(angle) * 0.4, Math.sin(angle) * 0.4, 0.16));
+    }
+    hitArea.setAttribute("d", path(hull(outer)) + (inner.length ? " " + path(inner) : ""));
+  };
   const renderFrame = () => {
     if (disposed || !contextAvailable) return;
-    const baseY = mobile ? -1.5 : 0.35;
-    model.position.y = baseY + Math.sin(time * 0.6) * 0.085;
-    model.rotation.set(
-      0.13 + pointerY * 0.06,
-      -0.38 + pointerX * 0.1 + Math.sin(time * 0.15) * 0.09,
-      -0.22 + Math.sin(time * 0.2) * 0.035,
-    );
-    orbitGroup.rotation.z = time * -0.02;
-    uniforms.uTime.value = time;
+    model.position.copy(physics.position);
+    model.quaternion.copy(physics.quaternion);
+    uniforms.uTime.value = physics.time;
     uniforms.uBlueprint.value = blueprint ? 1 : 0;
     renderer.render(scene, camera);
+    updateHitArea();
   };
   const tick = (stamp: number) => {
     frame = 0;
-    if (
-      disposed ||
-      !contextAvailable ||
-      !visible ||
-      document.hidden ||
-      paused()
-    )
-      return;
-    if (stamp - previous > 32) {
-      time += Math.min((stamp - previous) / 1000, 0.08);
+    if (disposed || !contextAvailable || !visible || document.hidden || (paused() && !physics.isDragging)) return;
+    if (stamp - previous >= 32) {
+      physics.advance(Math.min((stamp - previous) / 1000, 0.08), paused());
       previous = stamp;
       renderFrame();
     }
     frame = requestAnimationFrame(tick);
   };
   const sync = () => {
-    cancelAnimationFrame(frame);
-    frame = 0;
-    if (
-      !paused() &&
-      visible &&
-      !document.hidden &&
-      !disposed &&
-      contextAvailable
-    ) {
-      previous = performance.now();
-      frame = requestAnimationFrame(tick);
+    if ((!paused() || physics.isDragging) && visible && !document.hidden && !disposed && contextAvailable) {
+      if (!frame) {
+        previous = performance.now();
+        frame = requestAnimationFrame(tick);
+      }
+    } else {
+      cancelAnimationFrame(frame);
+      frame = 0;
     }
   };
-  const pointer = (event: PointerEvent) => {
-    if (paused() || event.pointerType !== "mouse") return;
-    pointerX = (event.clientX / window.innerWidth) * 2 - 1;
-    pointerY = (event.clientY / window.innerHeight) * 2 - 1;
+  const endGrab = () => {
+    const pointerId = activePointer;
+    activePointer = null;
+    if (pointerId !== null && hitArea.hasPointerCapture(pointerId)) hitArea.releasePointerCapture(pointerId);
+    clearTimeout(keyboardRelease);
+    physics.endDrag();
+    hitArea.classList.remove("is-grabbed");
+    sync();
+  };
+  const reset = () => {
+    endGrab();
+    physics.reset({ scale: mobile ? 0.72 : 1.12, x: mobile ? 0.2 : 2.6, z: mobile ? 1.5 : 1 });
+    physics.setBounds(bounds());
+    renderFrame();
+  };
+  const resize = () => {
+    const { width, height } = container.getBoundingClientRect();
+    if (width <= 0 || height <= 0 || (width === viewportWidth && height === viewportHeight)) return;
+    const wasMobile = mobile;
+    const first = viewportWidth === 0;
+    viewportWidth = width; viewportHeight = height;
+    mobile = width < 600;
+    renderer.setSize(width, height);
+    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    camera.aspect = width / height;
+    camera.position.set(0, mobile ? 6 : 5.2, mobile ? 14 : 12);
+    camera.lookAt(0, -0.65, 0);
+    camera.updateProjectionMatrix();
+    model.scale.setScalar(mobile ? 0.72 : 1.12);
+    if (first || wasMobile !== mobile) reset();
+    else renderFrame();
+  };
+  const setRay = (event: PointerEvent) => {
+    const rect = interaction.getBoundingClientRect();
+    pointerPosition.set((event.clientX - rect.left) / rect.width * 2 - 1, 1 - (event.clientY - rect.top) / rect.height * 2);
+    raycaster.setFromCamera(pointerPosition, camera);
+  };
+  const clampTarget = () => {
+    const area = bounds();
+    target.x = THREE.MathUtils.clamp(target.x, area.minX - 1, area.maxX + 1);
+    target.z = THREE.MathUtils.clamp(target.z, area.minZ - 1, area.maxZ + 1);
+    target.y = sampleWater(target.x, target.z, physics.time).height + grabHeight;
+  };
+  const pointerDown = (event: PointerEvent) => {
+    if (!contextAvailable || activePointer !== null || !event.isPrimary || event.button !== 0) return;
+    setRay(event);
+    model.updateWorldMatrix(true, true);
+    const hit = raycaster.intersectObject(body, false)[0];
+    if (!hit) return;
+    endGrab();
+    event.preventDefault();
+    activePointer = event.pointerId;
+    hitArea.setPointerCapture(event.pointerId);
+    target.copy(hit.point);
+    grabHeight = hit.point.y - sampleWater(hit.point.x, hit.point.z, physics.time).height;
+    dragPlane.constant = -hit.point.y;
+    physics.beginDrag(hit.point, target);
+    hitArea.classList.add("is-grabbed");
+    sync();
+  };
+  const pointerMove = (event: PointerEvent) => {
+    if (event.pointerId !== activePointer) return;
+    event.preventDefault();
+    setRay(event);
+    if (raycaster.ray.intersectPlane(dragPlane, target)) {
+      clampTarget();
+      physics.updateDrag(target);
+    }
+  };
+  const pointerEnd = (event: PointerEvent) => {
+    if (event.pointerId === activePointer) endGrab();
+  };
+  const keyDown = (event: KeyboardEvent) => {
+    if (event.key.toLowerCase() === "r" || event.key === "Home") { event.preventDefault(); reset(); return; }
+    if (event.key === "Escape") { event.preventDefault(); endGrab(); return; }
+    if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key) || activePointer !== null) return;
+    event.preventDefault();
+    if (!physics.isDragging) {
+      model.updateWorldMatrix(true, false);
+      target.copy(model.localToWorld(new THREE.Vector3(0, -1.43, 0.25)));
+      grabHeight = target.y - sampleWater(target.x, target.z, physics.time).height;
+      physics.beginDrag(target, target);
+    }
+    if (event.key === "ArrowLeft") target.x -= 0.4;
+    if (event.key === "ArrowRight") target.x += 0.4;
+    if (event.key === "ArrowUp") target.z -= 0.4;
+    if (event.key === "ArrowDown") target.z += 0.4;
+    clampTarget();
+    physics.updateDrag(target);
+    hitArea.classList.add("is-grabbed");
+    clearTimeout(keyboardRelease);
+    keyboardRelease = setTimeout(endGrab, 450);
+    sync();
+  };
+  const visibilityChanged = () => {
+    if (document.hidden) endGrab();
+    sync();
   };
   const observer = new IntersectionObserver(([entry]) => {
     if (visible === entry.isIntersecting) return;
     visible = entry.isIntersecting;
+    if (!visible) endGrab();
     sync();
   });
   observer.observe(container);
   const resizer = new ResizeObserver(resize);
   resizer.observe(container);
-  window.addEventListener("pointermove", pointer, { passive: true });
-  document.addEventListener("visibilitychange", sync);
+  hitArea.addEventListener("pointerdown", pointerDown);
+  hitArea.addEventListener("pointermove", pointerMove);
+  hitArea.addEventListener("pointerup", pointerEnd);
+  hitArea.addEventListener("pointercancel", pointerEnd);
+  hitArea.addEventListener("lostpointercapture", pointerEnd);
+  hitArea.addEventListener("keydown", keyDown);
+  hitArea.addEventListener("blur", endGrab);
+  window.addEventListener("blur", endGrab);
+  document.addEventListener("visibilitychange", visibilityChanged);
   media.addEventListener("change", sync);
   const contextLost = (event: Event) => {
     event.preventDefault();
     contextAvailable = false;
     visible = false;
-    cancelAnimationFrame(frame);
+    endGrab();
     renderer.domElement.style.opacity = "0";
+    interaction.hidden = true;
     onUnavailable();
   };
   renderer.domElement.addEventListener("webglcontextlost", contextLost);
@@ -453,6 +567,7 @@ export function createOcean(
         m.wireframe = value;
       });
       label.visible = !value;
+      orbitGroup.visible = value;
       orbitMaterial.opacity = value ? 0.65 : 0.16;
       renderFrame();
     },
@@ -466,8 +581,17 @@ export function createOcean(
       cancelAnimationFrame(frame);
       observer.disconnect();
       resizer.disconnect();
-      window.removeEventListener("pointermove", pointer);
-      document.removeEventListener("visibilitychange", sync);
+      endGrab();
+      hitArea.removeEventListener("pointerdown", pointerDown);
+      hitArea.removeEventListener("pointermove", pointerMove);
+      hitArea.removeEventListener("pointerup", pointerEnd);
+      hitArea.removeEventListener("pointercancel", pointerEnd);
+      hitArea.removeEventListener("lostpointercapture", pointerEnd);
+      hitArea.removeEventListener("keydown", keyDown);
+      hitArea.removeEventListener("blur", endGrab);
+      window.removeEventListener("blur", endGrab);
+      svg.remove();
+      document.removeEventListener("visibilitychange", visibilityChanged);
       media.removeEventListener("change", sync);
       renderer.domElement.removeEventListener("webglcontextlost", contextLost);
       const geometries = new Set<THREE.BufferGeometry>();
