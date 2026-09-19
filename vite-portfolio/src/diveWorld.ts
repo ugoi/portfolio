@@ -3,6 +3,7 @@ import { METRES_PER_UNIT, WATER_LEVEL, WAVE_GLSL, WAVE_GLSL_CALLS } from "./wave
 import { SKY_GLSL, SUN_DIRECTION } from "./lighting";
 import { createMarineLife } from "./marineLife";
 import { createBikiniBottom } from "./bikiniBottom";
+import { oceanFogColor, WATER_OPTICS_GLSL } from "./waterOptics";
 
 export interface DiveWorld {
   update: (depth: number, time: number, blueprint: boolean, underwater: number, camera: THREE.Camera) => void;
@@ -10,14 +11,9 @@ export interface DiveWorld {
 }
 
 const worldY = (metres: number) => WATER_LEVEL - metres / METRES_PER_UNIT;
-const smoothstep = (low: number, high: number, value: number) => {
-  const amount = THREE.MathUtils.clamp((value - low) / (high - low), 0, 1);
-  return amount * amount * (3 - 2 * amount);
-};
-
-/** Open water is continuous. Encounters occupy their own depths; no walls or
- * artificial floor confine the descent. Bikini Bottom is a deliberate fantasy
- * destination, so its turquoise light returns as the town comes into view. */
+/** Open water is continuous. Encounters occupy their own depths; no artificial
+ * walls confine the descent. The same optical water volume
+ * surrounds every animal, reef and building at all times. */
 export function createDiveWorld(scene: THREE.Scene): DiveWorld {
   const group = new THREE.Group();
   group.name = "Open ocean";
@@ -36,10 +32,8 @@ export function createDiveWorld(scene: THREE.Scene): DiveWorld {
     uDepth: { value: 0 },
     uBlueprint: { value: 0 },
     uUnderwater: { value: 0 },
-    uTown: { value: 0 },
     uFog: { value: new THREE.Color(0x063d4b) },
     uSunDirection: { value: new THREE.Vector3(...SUN_DIRECTION).normalize() },
-    uCamera: { value: new THREE.Vector3() },
   };
 
   // The same waves and the same sky are visible from both sides of the water.
@@ -66,6 +60,7 @@ export function createDiveWorld(scene: THREE.Scene): DiveWorld {
       uniform vec3 uFog;
       varying vec3 vWorld, vNormal;
       ${SKY_GLSL}
+      ${WATER_OPTICS_GLSL}
       void main() {
         vec3 view = normalize(cameraPosition - vWorld);
         vec3 normal = normalize(vNormal + vec3(sin(vWorld.z * 6.0 + uTime) * .025, 0., cos(vWorld.x * 7.2 - uTime) * .028));
@@ -76,9 +71,7 @@ export function createDiveWorld(scene: THREE.Scene): DiveWorld {
         float fresnel = .0204 + .9796 * pow(1.0 - facing, 5.0);
         vec3 reflected = mix(vec3(.025, .17, .22), vec3(.10, .34, .35), facing);
         vec3 color = mix(reflected, daylight, window * (1.0 - fresnel));
-        float distanceToEye = length(cameraPosition - vWorld);
-        color *= exp(-distanceToEye * vec3(.024, .0065, .0035));
-        color = mix(color, uFog, 1.0 - exp(-distanceToEye * .008));
+        color = underwaterExtinction(color, vWorld, cameraPosition);
         color = mix(color, vec3(.025, .16, .22), uBlueprint);
         gl_FragColor = vec4(color, 1.0);
         #include <tonemapping_fragment>
@@ -103,17 +96,18 @@ export function createDiveWorld(scene: THREE.Scene): DiveWorld {
       void main() {
         vec4 world = modelMatrix * vec4(position, 1.0);
         vWorld = world.xyz;
-        vNormal = normalize(mat3(modelMatrix) * normal);
+        vNormal = normalize((vec4(normalMatrix * normal, 0.) * viewMatrix).xyz);
         gl_Position = projectionMatrix * viewMatrix * world;
       }`,
     fragmentShader: `
       uniform float uTime, uBlueprint, uUnderwater, uCoral;
       uniform vec3 uColor, uFog, uSunDirection;
       varying vec3 vWorld, vNormal;
+      ${WATER_OPTICS_GLSL}
       void main() {
         vec3 normal = normalize(vNormal);
         float depth = max(0., (${WATER_LEVEL.toFixed(3)} - vWorld.y) * ${METRES_PER_UNIT});
-        float sunlight = exp(-depth * .022);
+        float sunlight = solarAtDepth(depth);
         vec3 lightDirection = normalize(vec3(uSunDirection.x * .48, .83, uSunDirection.z * .48));
         float light = .30 + max(0., dot(normal, lightDirection)) * .75;
         vec2 p = vWorld.xz * .39 + vec2(vWorld.y * .13, 0.);
@@ -124,10 +118,7 @@ export function createDiveWorld(scene: THREE.Scene): DiveWorld {
         vec3 color = uColor * (light * mix(.33, 1., sunlight) + grain);
         color += vec3(.28, .43, .31) * caustic;
         color += uColor * uCoral * .1;
-        float distanceToEye = length(cameraPosition - vWorld);
-        vec3 attenuation = exp(-distanceToEye * vec3(.015, .0035, .0018));
-        color *= mix(vec3(1.), attenuation, uUnderwater);
-        color = mix(color, uFog, (1. - exp(-distanceToEye * .009)) * uUnderwater);
+        color = mix(color, underwaterExtinction(color, vWorld, cameraPosition), uUnderwater);
         color = mix(color, vec3(.035, .18, .21) * (.7 + light), uBlueprint);
         gl_FragColor = vec4(color, 1.);
         #include <tonemapping_fragment>
@@ -214,18 +205,18 @@ export function createDiveWorld(scene: THREE.Scene): DiveWorld {
     ray.position.addScaledVector(refractedSun, length / 2);
   }
 
-  // A fixed seeded volume wraps around the camera, so 1 km of water stays
-  // populated without storing a kilometre of points or spawning per-frame work.
-  const particleCount = 850;
+  // The entire kilometre is populated once. Particles advect in this fixed
+  // volume; moving or resizing the camera never moves or respawns them.
+  const particleCount = 12000;
   const particleGeometry = new THREE.BufferGeometry();
   const positions = new Float32Array(particleCount * 3);
   const sizes = new Float32Array(particleCount);
   let seed = 1729;
   const random = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
   for (let index = 0; index < particleCount; index++) {
-    positions[index * 3] = random() * 160 - 80;
-    positions[index * 3 + 1] = random() * 160 - 80;
-    positions[index * 3 + 2] = random() * 160 - 80;
+    positions[index * 3] = random() * 200 - 100;
+    positions[index * 3 + 1] = WATER_LEVEL - random() * 4120;
+    positions[index * 3 + 2] = random() * 200 - 140;
     sizes[index] = .6 + random() * 1.4;
   }
   particleGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
@@ -236,27 +227,25 @@ export function createDiveWorld(scene: THREE.Scene): DiveWorld {
     depthWrite: false,
     vertexShader: `
       uniform float uTime;
-      uniform vec3 uCamera;
       attribute float aSize;
-      varying float vAlpha;
+      varying float vAlpha, vLight;
       void main() {
-        vec3 offset = position;
-        offset.y -= uTime * .16;
-        offset.x += sin(uTime * .1 + position.y) * .48;
-        vec3 p = uCamera + mod(offset - uCamera + 80., 160.) - 80.;
+        vec3 p = position;
+        p.y = ${WATER_LEVEL} - mod(${WATER_LEVEL} - position.y + uTime * .16, 4120.);
+        p.x += sin(uTime * .1 + position.y * .013) * .48;
+        vLight = .13 + .87 * exp(-max(0., (${WATER_LEVEL} - p.y) * ${METRES_PER_UNIT}) * .025);
         vec4 view = viewMatrix * vec4(p, 1.0);
         gl_PointSize = clamp(aSize * 64.0 / max(1.0, -view.z), 1.0, 3.2);
-        vAlpha = smoothstep(1., 7., -view.z) * (1. - smoothstep(52., 79., length(p - uCamera)));
+        vAlpha = smoothstep(1., 7., -view.z) * exp(-length(p - cameraPosition) * .012);
         vAlpha *= step(p.y, ${WATER_LEVEL.toFixed(3)});
         gl_Position = projectionMatrix * view;
       }`,
     fragmentShader: `
-      uniform float uUnderwater, uBlueprint, uDepth, uTown;
-      varying float vAlpha;
+      uniform float uUnderwater, uBlueprint;
+      varying float vAlpha, vLight;
       void main() {
         float circle = 1.0 - smoothstep(.12, .5, length(gl_PointCoord - .5));
-        vec3 color = mix(vec3(.42, .78, .79), vec3(.10, .50, .70), smoothstep(80., 600., uDepth));
-        color = mix(color, vec3(.73, .91, .76), uTown);
+        vec3 color = vec3(.30, .60, .74) * vLight;
         gl_FragColor = vec4(color, circle * vAlpha * .40 * uUnderwater * (1.0 - uBlueprint * .7));
       }`,
   });
@@ -266,52 +255,18 @@ export function createDiveWorld(scene: THREE.Scene): DiveWorld {
   geometries.add(particleGeometry);
   materials.add(particleMaterial);
 
-  // Distant graphic flowers mark the transition into the cartoon world. Their
-  // subtle parallax puts them behind the town rather than over the interface.
-  const flowers = new THREE.Group();
-  flowers.name = "Bikini Bottom flower horizon";
-  group.add(flowers);
-  const flowerMaterials = [0x86c7c9, 0x849dd1, 0xd2bd79, 0x69b4a1].map(color =>
-    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0, depthWrite: false, fog: false }));
-  const flowerPlacements = [
-    [-85, 50, -225, 35], [72, 90, -270, 41], [-16, 105, -295, 28],
-    [115, -26, -250, 26], [-128, -21, -270, 24], [24, -44, -280, 23],
-  ];
-  flowerPlacements.forEach(([x, y, z, size], index) => {
-    const points: THREE.Vector3[] = [];
-    for (let step = 0; step < 100; step++) {
-      const angle = step / 100 * Math.PI * 2;
-      const radius = size * (.68 + .28 * Math.cos(angle * 5));
-      points.push(new THREE.Vector3(Math.cos(angle) * radius, Math.sin(angle) * radius, 0));
-    }
-    const outline = add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points, true), 100, size * .025, 5, true), flowerMaterials[index % 4], flowers);
-    outline.position.set(x, y, z);
-    outline.rotation.z = index * .7;
-    const center = add(new THREE.TorusGeometry(size * .105, size * .022, 5, 24), flowerMaterials[index % 4], flowers);
-    center.position.copy(outline.position);
-  });
   const marineLife = createMarineLife(scene);
   const bikiniBottom = createBikiniBottom(scene);
-  const shallow = new THREE.Color(0x063d4b);
-  const deep = new THREE.Color(0x020b22);
-  const town = new THREE.Color(0x39aebb);
   return {
     update(depth, time, blueprint, underwater, camera) {
-      const arrival = smoothstep(850, 985, depth);
       shared.uTime.value = time;
       shared.uDepth.value = depth;
       shared.uBlueprint.value = blueprint ? 1 : 0;
       shared.uUnderwater.value = underwater;
-      shared.uTown.value = arrival;
-      shared.uCamera.value.copy(camera.position);
-      shared.uFog.value.copy(shallow).lerp(deep, THREE.MathUtils.clamp(depth / 650, 0, 1)).lerp(town, arrival);
-      ceiling.visible = underwater > .01 && depth < 90;
-      reef.visible = depth < 120;
-      flowers.visible = arrival > .001 && underwater > .1;
-      flowers.position.y = camera.position.y;
-      flowerMaterials.forEach(material => { material.opacity = arrival * (blueprint ? .055 : .13); });
+      oceanFogColor(depth, shared.uFog.value);
+      ceiling.visible = underwater > .01;
       marineLife.update(depth, time, blueprint, underwater, camera);
-      bikiniBottom.update(depth, time, blueprint, underwater, camera);
+      bikiniBottom.update(time, blueprint);
     },
     dispose() {
       marineLife.dispose();

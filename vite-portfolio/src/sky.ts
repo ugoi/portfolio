@@ -1,5 +1,7 @@
 import * as THREE from "three";
 import { SKY_GLSL, SUN_DIRECTION } from "./lighting";
+import { WATER_OPTICS_GLSL } from "./waterOptics";
+import { WATER_LEVEL, METRES_PER_UNIT } from "./waterScale";
 
 export function createSky(renderer: THREE.WebGLRenderer, scene: THREE.Scene) {
   const sunDirection = new THREE.Vector3(...SUN_DIRECTION).normalize();
@@ -7,7 +9,7 @@ export function createSky(renderer: THREE.WebGLRenderer, scene: THREE.Scene) {
   const material = new THREE.ShaderMaterial({
     side: THREE.BackSide,
     depthWrite: false,
-    uniforms: { uSunDirection: { value: sunDirection } },
+    uniforms: { uSunDirection: { value: sunDirection }, uDepth: { value: 0 }, uUnderwater: { value: 0 } },
     vertexShader: `
       varying vec3 vDirection;
       void main() {
@@ -19,9 +21,12 @@ export function createSky(renderer: THREE.WebGLRenderer, scene: THREE.Scene) {
       }`,
     fragmentShader: `
       varying vec3 vDirection;
+      uniform float uDepth, uUnderwater;
       ${SKY_GLSL}
+      ${WATER_OPTICS_GLSL}
       void main() {
-        gl_FragColor = vec4(daylightSky(vDirection), 1.0);
+        vec3 color = uUnderwater > 0. ? waterFogColor(uDepth) : daylightSky(vDirection);
+        gl_FragColor = vec4(color, 1.0);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }`,
@@ -41,7 +46,10 @@ export function createSky(renderer: THREE.WebGLRenderer, scene: THREE.Scene) {
   return {
     update(camera: THREE.Camera, underwater: number) {
       mesh.position.copy(camera.position);
-      mesh.visible = underwater < .01;
+      // Background and distant geometry must share the same tone mapping.
+      // A solid scene.background colour bypasses ACES and leaves a horizon seam.
+      material.uniforms.uDepth.value = Math.max(0, (WATER_LEVEL - camera.position.y) * METRES_PER_UNIT);
+      material.uniforms.uUnderwater.value = underwater;
     },
     dispose() {
       scene.remove(mesh);

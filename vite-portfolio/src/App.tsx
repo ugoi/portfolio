@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { OceanController } from "./ocean";
 import { cameraAtDive, depthAtScroll, MAX_DIVE_DEPTH } from "./dive";
 
@@ -29,6 +29,15 @@ function App() {
   const reducedMotion = useSyncExternalStore(subscribeMotion, readMotion, () => true);
   const motionPaused = paused ?? reducedMotion;
 
+  const showDepth = useCallback((nominal: number, immersion: number) => {
+    const journey = journeyRef.current;
+    journey?.style.setProperty("--surface-visibility", String(Math.max(0, 1 - nominal / .65)));
+    journey?.style.setProperty("--dive-progress", String(immersion / MAX_DIVE_DEPTH));
+    journey?.style.setProperty("--town-visibility", String(Math.max(0, Math.min(1, (immersion - 970) / 30))));
+    setDepth(Math.round(immersion * 10) / 10);
+    setAtSurface(nominal < .65);
+  }, []);
+
   useEffect(() => {
     let disposed = false;
     const element = sceneRef.current;
@@ -37,7 +46,7 @@ function App() {
     import("./ocean").then(({ createOcean }) => {
       if (disposed) return;
       try {
-        controller.current = createOcean(element, interaction, () => setSceneReady(false));
+        controller.current = createOcean(element, interaction, () => setSceneReady(false), showDepth);
         setSceneReady(true);
       } catch {
         // The CSS water world and all native document content remain available.
@@ -48,7 +57,7 @@ function App() {
       controller.current?.dispose();
       controller.current = null;
     };
-  }, []);
+  }, [showDepth]);
   useEffect(() => { controller.current?.setBlueprint(blueprint); }, [blueprint, sceneReady]);
   useEffect(() => { controller.current?.setPaused(paused); }, [paused, sceneReady]);
 
@@ -62,12 +71,8 @@ function App() {
       const top = journey.getBoundingClientRect().top + window.scrollY;
       const next = depthAtScroll(window.scrollY, top, journey.offsetHeight, viewport.offsetHeight);
       const immersion = cameraAtDive(next, viewport.clientWidth < 600).depth;
-      controller.current?.setDive(next);
-      journey.style.setProperty("--surface-visibility", String(Math.max(0, 1 - next / .65)));
-      journey.style.setProperty("--dive-progress", String(immersion / MAX_DIVE_DEPTH));
-      journey.style.setProperty("--town-visibility", String(Math.max(0, Math.min(1, (immersion - 920) / 70))));
-      setDepth(Math.round(immersion * 10) / 10);
-      setAtSurface(next < .65);
+      if (sceneReady) controller.current?.setDive(next);
+      else showDepth(next, immersion);
       const chapters = [
         ["contact", "06 / FEIERABEND"], ["bikini-bottom", "05 / BIKINI BOTTOM"], ["tech", "04 / DIE NEUGIER"],
         ["elements", "03 / DER ANTRIEB"], ["about", "02 / DER MENSCH"],
@@ -91,11 +96,11 @@ function App() {
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", schedule);
     };
-  }, [sceneReady]);
+  }, [sceneReady, showDepth]);
 
 
   return (
-    <div className={`site ${blueprint ? "is-blueprint" : ""} ${depth > 0 ? "is-underwater" : ""} ${depth > 900 ? "is-in-town" : ""}`}>
+    <div className={`site ${blueprint ? "is-blueprint" : ""} ${depth > 0 ? "is-underwater" : ""}`}>
       <a className="skip-link" href="#about">Direkt zum Inhalt</a>
       <div className="site-chrome">
         <header className="site-header">

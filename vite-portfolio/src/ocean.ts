@@ -2,7 +2,8 @@ import * as THREE from "three";
 import { Reflector } from "three/addons/objects/Reflector.js";
 import { BuoyPhysics } from "./buoyPhysics";
 import { createDiveWorld } from "./diveWorld";
-import { cameraAtDive, MAX_DIVE_DEPTH } from "./dive";
+import { advanceDiveDepth, cameraAtDive, MAX_DIVE_DEPTH } from "./dive";
+import { oceanFogColor } from "./waterOptics";
 import { createSky } from "./sky";
 import { SKY_GLSL, SUN_DIRECTION } from "./lighting";
 import { METRES_PER_UNIT, WATER_LEVEL, WAVE_GLSL, WAVE_GLSL_CALLS, sampleWater } from "./waves";
@@ -18,6 +19,7 @@ export function createOcean(
   container: HTMLDivElement,
   interaction: HTMLDivElement,
   onUnavailable: () => void,
+  onDive?: (nominal: number, immersion: number) => void,
 ): OceanController {
   const renderer = new THREE.WebGLRenderer({
     alpha: true,
@@ -363,9 +365,6 @@ export function createOcean(
   distantWater.name = "Open sea horizon";
   scene.add(distantWater);
   const diveWorld = createDiveWorld(scene);
-  const shallowFog = new THREE.Color(0x063d4b);
-  const deepFog = new THREE.Color(0x020b22);
-  const townFog = new THREE.Color(0x39aebb);
   const underwaterBackground = new THREE.Color();
 
   const physics = new BuoyPhysics({ scale: 1.12, x: 2.6, z: 1 });
@@ -384,7 +383,7 @@ export function createOcean(
   let frame = 0, previous = 0, activePointer: number | null = null;
   let visible = true, blueprint = false, userPaused: boolean | null = null;
   let disposed = false, contextAvailable = true;
-  let diveDepth = 0;
+  let diveDepth = 0, targetDiveDepth = 0;
   let keyboardRelease: ReturnType<typeof setTimeout> | undefined;
   const media = window.matchMedia("(prefers-reduced-motion: reduce)");
   const paused = () => userPaused ?? media.matches;
@@ -447,7 +446,7 @@ export function createOcean(
     const arrival = THREE.MathUtils.smoothstep(diveDepth, 880, 1000);
     const cameraX = Math.sin(diveDepth * .008) * 2.2 * descend * (1 - arrival);
     const oceanZ = THREE.MathUtils.lerp(mobile ? 14 : 12, 8, enter);
-    const cameraZ = THREE.MathUtils.lerp(oceanZ, mobile ? 40 : 20, arrival);
+    const cameraZ = THREE.MathUtils.lerp(oceanZ, mobile ? 55 : 20, arrival);
     camera.position.set(cameraX, cameraY, cameraZ);
     // A gentle forward descent through open water, widening into the town.
     const lookDrop = THREE.MathUtils.lerp(THREE.MathUtils.lerp(3, 12, descend), 20, arrival);
@@ -458,12 +457,13 @@ export function createOcean(
       THREE.MathUtils.lerp(-.1, lookY, enter),
       THREE.MathUtils.lerp(0, THREE.MathUtils.lerp(-32, -42, arrival), enter),
     );
-    const fov = THREE.MathUtils.lerp(60, mobile ? 70 : 58, enter);
+    const fov = THREE.MathUtils.lerp(60, mobile ? 60 : 58, enter);
     if (camera.fov !== fov) {
       camera.fov = fov;
       camera.updateProjectionMatrix();
     }
     camera.updateMatrixWorld();
+    onDive?.(diveDepth, Math.max(0, (WATER_LEVEL - cameraY) * METRES_PER_UNIT));
   };
   const renderFrame = () => {
     if (disposed || !contextAvailable) return;
@@ -474,15 +474,14 @@ export function createOcean(
     const underwater = THREE.MathUtils.clamp((WATER_LEVEL - camera.position.y) * 2, 0, 1);
     sky.update(camera, underwater);
     diveWorld.update(diveDepth, physics.time, blueprint, underwater, camera);
-    const arrival = THREE.MathUtils.smoothstep(diveDepth, 850, 985);
-    underwaterBackground.copy(shallowFog).lerp(deepFog, Math.min(1, diveDepth / 650)).lerp(townFog, arrival);
-    scene.background = underwater > 0 ? underwaterBackground : null;
+    oceanFogColor(Math.max(0, (WATER_LEVEL - camera.position.y) * METRES_PER_UNIT), underwaterBackground);
+    scene.background = null;
     const fog = scene.fog as THREE.FogExp2;
     fog.color.set(0x9ebbc2).lerp(underwaterBackground, underwater);
-    fog.density = THREE.MathUtils.lerp(.008, THREE.MathUtils.lerp(.010 + Math.min(diveDepth, 700) * .000006, .0035, arrival), underwater);
+    fog.density = .008;
     water.visible = underwater < .5;
     distantWater.visible = underwater < .01;
-    model.visible = diveDepth < 5;
+    interaction.hidden = targetDiveDepth > .15 || diveDepth > .15 || !contextAvailable;
     renderer.render(scene, camera);
     updateHitArea();
   };
@@ -490,13 +489,22 @@ export function createOcean(
     frame = 0;
     if (disposed || !contextAvailable || !visible || document.hidden || (paused() && !physics.isDragging)) return;
     if (stamp - previous >= 32) {
-      physics.advance(Math.min((stamp - previous) / 1000, 0.08), paused());
+      const elapsed = (stamp - previous) / 1000;
+      physics.advance(Math.min(elapsed, 0.08), paused());
+      if (diveDepth !== targetDiveDepth) {
+        diveDepth = advanceDiveDepth(diveDepth, targetDiveDepth, Math.min(elapsed, .25));
+        updateCamera();
+      }
       previous = stamp;
       renderFrame();
     }
     frame = requestAnimationFrame(tick);
   };
   const sync = () => {
+    if (paused() && diveDepth !== targetDiveDepth) {
+      diveDepth = targetDiveDepth;
+      updateCamera();
+    }
     if ((!paused() || physics.isDragging) && visible && !document.hidden && !disposed && contextAvailable) {
       if (!frame) {
         previous = performance.now();
@@ -659,8 +667,9 @@ export function createOcean(
     setDive(value) {
       if (!Number.isFinite(value)) return;
       const depth = THREE.MathUtils.clamp(value, 0, MAX_DIVE_DEPTH);
-      if (depth === diveDepth) return;
-      diveDepth = depth;
+      if (depth === targetDiveDepth) return;
+      targetDiveDepth = depth;
+      if (paused()) diveDepth = depth;
       if (depth > .15) {
         endGrab();
         if (document.activeElement === hitArea) hitArea.blur();

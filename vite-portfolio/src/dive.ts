@@ -2,6 +2,13 @@ import { WATER_LEVEL, METRES_PER_UNIT } from "./waterScale.ts";
 
 export const MAX_DIVE_DEPTH = 1000;
 
+// Smooth a wheel step without changing the scene's world scale or teleporting
+// animals. This exponential response is independent of render frame rate.
+export function advanceDiveDepth(current: number, target: number, seconds: number) {
+  const next = target + (current - target) * Math.exp(-9 * Math.max(0, seconds));
+  return Math.abs(next - target) < .001 ? target : next;
+}
+
 // Give the surface and its fish time to breathe, then cross the open water
 // faster. The final part of the document holds the camera in Bikini Bottom.
 export function depthAtProgress(progress: number): number {
