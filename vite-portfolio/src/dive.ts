@@ -21,7 +21,7 @@ export function cameraAtDive(value: number, mobile: boolean) {
   const targetDepth = Math.min(MAX_DIVE_DEPTH, Math.max(0, value));
   const fraction = Math.min(1, targetDepth / 0.8);
   const enter = fraction * fraction * (3 - 2 * fraction);
-  const surfaceY = mobile ? 6 : 5.2;
+  const surfaceY = mobile ? 3.8 : 3.2;
   const y = surfaceY + (WATER_LEVEL - targetDepth / METRES_PER_UNIT - surfaceY) * enter;
   return { y, depth: Math.max(0, (WATER_LEVEL - y) * METRES_PER_UNIT) };
 }
