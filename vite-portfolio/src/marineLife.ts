@@ -85,10 +85,10 @@ function rayGeometry() {
   return geometry;
 }
 
-/** Persistent inhabitants of one kilometre of ocean. The observer never moves them. */
+/** Persistent inhabitants of the sunlit lagoon. The observer never moves them. */
 export function createMarineLife(scene: THREE.Scene): MarineLife {
   const root = new THREE.Group();
-  root.name = "Persistent ocean habitats — 8 to 980 metres";
+  root.name = "Persistent lagoon habitats — 6 to 42 metres";
   scene.add(root);
   const geometries = new Set<THREE.BufferGeometry>();
   const materials = new Set<THREE.Material>();
@@ -208,7 +208,7 @@ export function createMarineLife(scene: THREE.Scene): MarineLife {
       new THREE.Vector3(sign * .7, .26, -2.6), new THREE.Vector3(sign * .88, .31, -2.45),
     ]), 12, .12, 7, false));
   }
-  const rays = [72, 165, 350].map((metres, i) => {
+  const rays = [12, 23, 34].map((metres, i) => {
     const ray = new THREE.Group();
     ray.name = `Ray habitat at ${metres} m`;
     ray.add(new THREE.Mesh(rayGeometryMain, rayMaterial));
@@ -303,8 +303,8 @@ export function createMarineLife(scene: THREE.Scene): MarineLife {
   const jellyMaterials = [jellyMaterial(0), jellyMaterial(1), jellyMaterial(2)];
   jellyGeometries.forEach(geometry => geometry.setAttribute('aPhase',
     new THREE.InstancedBufferAttribute(new Float32Array([.4, 2.7, 5.1]), 1)));
-  const jellies = Array.from({ length: 24 }, (_, i) => {
-    const metres = 115 + i * 31;
+  const jellies = Array.from({ length: 4 }, (_, i) => {
+    const metres = 14 + i * 8;
     const centre = new THREE.Vector3(Math.sin(i * 2.7) * 8, WATER_LEVEL - metres / METRES_PER_UNIT, -21 - hash(i) * 8);
     const meshes = jellyGeometries.map((geometry, part) => {
       const mesh = new THREE.InstancedMesh(geometry, jellyMaterials[part], 3);

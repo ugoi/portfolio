@@ -3,6 +3,7 @@ import { METRES_PER_UNIT, WATER_LEVEL, WAVE_GLSL, WAVE_GLSL_CALLS } from "./wave
 import { SKY_GLSL, SUN_DIRECTION } from "./lighting";
 import { createMarineLife } from "./marineLife";
 import { createBikiniBottom } from "./bikiniBottom";
+import { TOWN_BASE_DEPTH } from "./waterScale";
 import { oceanFogColor, WATER_OPTICS_GLSL } from "./waterOptics";
 
 export interface DiveWorld {
@@ -141,7 +142,7 @@ export function createDiveWorld(scene: THREE.Scene): DiveWorld {
     const side = index % 2 === 0 ? -1 : 1;
     const level = Math.floor(index / 2);
     const x = side * (38 + level * 5);
-    const y = worldY(13 + level * 16);
+    const y = worldY(9 + level * 8);
     const z = -35 - level * 10;
     const rock = add(rockGeometry, stoneMaterial, reef);
     rock.position.set(x, y, z);
@@ -205,9 +206,10 @@ export function createDiveWorld(scene: THREE.Scene): DiveWorld {
     ray.position.addScaledVector(refractedSun, length / 2);
   }
 
-  // The entire kilometre is populated once. Particles advect in this fixed
+  // The entire lagoon is populated once. Particles advect in this fixed
   // volume; moving or resizing the camera never moves or respawns them.
-  const particleCount = 12000;
+  const particleCount = 1200;
+  const particleVolume = (TOWN_BASE_DEPTH + 4) / METRES_PER_UNIT;
   const particleGeometry = new THREE.BufferGeometry();
   const positions = new Float32Array(particleCount * 3);
   const sizes = new Float32Array(particleCount);
@@ -215,7 +217,7 @@ export function createDiveWorld(scene: THREE.Scene): DiveWorld {
   const random = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
   for (let index = 0; index < particleCount; index++) {
     positions[index * 3] = random() * 200 - 100;
-    positions[index * 3 + 1] = WATER_LEVEL - random() * 4120;
+    positions[index * 3 + 1] = WATER_LEVEL - random() * particleVolume;
     positions[index * 3 + 2] = random() * 200 - 140;
     sizes[index] = .6 + random() * 1.4;
   }
@@ -231,7 +233,7 @@ export function createDiveWorld(scene: THREE.Scene): DiveWorld {
       varying float vAlpha, vLight;
       void main() {
         vec3 p = position;
-        p.y = ${WATER_LEVEL} - mod(${WATER_LEVEL} - position.y + uTime * .16, 4120.);
+        p.y = ${WATER_LEVEL} - mod(${WATER_LEVEL} - position.y + uTime * .16, ${particleVolume.toFixed(1)});
         p.x += sin(uTime * .1 + position.y * .013) * .48;
         vLight = .13 + .87 * exp(-max(0., (${WATER_LEVEL} - p.y) * ${METRES_PER_UNIT}) * .025);
         vec4 view = viewMatrix * vec4(p, 1.0);

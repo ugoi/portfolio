@@ -1,6 +1,7 @@
 import { WATER_LEVEL, METRES_PER_UNIT } from "./waterScale.ts";
 
-export const MAX_DIVE_DEPTH = 1000;
+export { DESTINATION_DEPTH as MAX_DIVE_DEPTH } from "./waterScale.ts";
+import { DESTINATION_DEPTH as MAX_DIVE_DEPTH } from "./waterScale.ts";
 
 // Smooth a wheel step without changing the scene's world scale or teleporting
 // animals. This exponential response is independent of render frame rate.
@@ -9,11 +10,11 @@ export function advanceDiveDepth(current: number, target: number, seconds: numbe
   return Math.abs(next - target) < .001 ? target : next;
 }
 
-// Give the surface and its fish time to breathe, then cross the open water
-// faster. The final part of the document holds the camera in Bikini Bottom.
+// Travel through a shallow lagoon at a measured pace. The final part of the
+// document holds the camera in Bikini Bottom.
 export function depthAtProgress(progress: number): number {
   const p = Math.min(1, Math.max(0, progress / .88));
-  return MAX_DIVE_DEPTH * (.02 * p + .98 * p * p * p);
+  return MAX_DIVE_DEPTH * (.02 * p + .98 * p ** 1.5);
 }
 
 // Use the actual sticky viewport height: mobile browser chrome can change

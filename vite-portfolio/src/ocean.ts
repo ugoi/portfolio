@@ -3,6 +3,7 @@ import { Reflector } from "three/addons/objects/Reflector.js";
 import { BuoyPhysics } from "./buoyPhysics";
 import { createDiveWorld } from "./diveWorld";
 import { advanceDiveDepth, cameraAtDive, MAX_DIVE_DEPTH } from "./dive";
+import { TOWN_BASE_DEPTH } from "./waterScale";
 import { oceanFogColor } from "./waterOptics";
 import { createSky } from "./sky";
 import { SKY_GLSL, SUN_DIRECTION } from "./lighting";
@@ -443,15 +444,15 @@ export function createOcean(
     const enter = THREE.MathUtils.smoothstep(diveDepth, 0, .8);
     const descend = THREE.MathUtils.smoothstep(diveDepth, .8, 5);
     const cameraY = cameraAtDive(diveDepth, mobile).y;
-    const arrival = THREE.MathUtils.smoothstep(diveDepth, 880, 1000);
+    const arrival = THREE.MathUtils.smoothstep(diveDepth, MAX_DIVE_DEPTH * .6, MAX_DIVE_DEPTH);
     const cameraX = Math.sin(diveDepth * .008) * 2.2 * descend * (1 - arrival);
     const oceanZ = THREE.MathUtils.lerp(mobile ? 14 : 12, 8, enter);
     const cameraZ = THREE.MathUtils.lerp(oceanZ, mobile ? 55 : 20, arrival);
     camera.position.set(cameraX, cameraY, cameraZ);
     // A gentle forward descent through open water, widening into the town.
     const lookDrop = THREE.MathUtils.lerp(THREE.MathUtils.lerp(3, 12, descend), 20, arrival);
-    const townGaze = THREE.MathUtils.smoothstep(diveDepth, 840, 975);
-    const lookY = THREE.MathUtils.lerp(cameraY - lookDrop, WATER_LEVEL - 1007 / METRES_PER_UNIT + 8, townGaze);
+    const townGaze = THREE.MathUtils.smoothstep(diveDepth, MAX_DIVE_DEPTH * .55, MAX_DIVE_DEPTH * .975);
+    const lookY = THREE.MathUtils.lerp(cameraY - lookDrop, WATER_LEVEL - TOWN_BASE_DEPTH / METRES_PER_UNIT + 8, townGaze);
     camera.lookAt(
       0,
       THREE.MathUtils.lerp(-.1, lookY, enter),
