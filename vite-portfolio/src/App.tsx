@@ -24,6 +24,7 @@ const readMotion = () =>
 
 function App() {
   const sceneRef = useRef<HTMLDivElement>(null);
+  const interactionRef = useRef<HTMLDivElement>(null);
   const controller = useRef<OceanController | null>(null);
   const [blueprint, setBlueprint] = useState(false);
   const [paused, setPaused] = useState<boolean | null>(null);
@@ -38,12 +39,13 @@ function App() {
   useEffect(() => {
     let disposed = false;
     const element = sceneRef.current;
-    if (!element) return;
+    const interaction = interactionRef.current;
+    if (!element || !interaction) return;
     import("./ocean")
       .then(({ createOcean }) => {
         if (disposed) return;
         try {
-          controller.current = createOcean(element, () => setSceneReady(false));
+          controller.current = createOcean(element, interaction, () => setSceneReady(false));
           setSceneReady(true);
         } catch {
           // The illustration and all content remain available without WebGL.
@@ -96,6 +98,7 @@ function App() {
       <main>
         <section className="hero" id="top" aria-labelledby="hero-title">
           <div className="hero-scene" ref={sceneRef} aria-hidden="true" />
+          <div className="buoy-interaction" ref={interactionRef} />
           {!sceneReady && (
             <div className="fallback-art" aria-hidden="true">
               <div />
@@ -131,7 +134,7 @@ function App() {
             <span>
               01 / WASSER TRIFFT TECHNIK
               <br />
-              <b>DER EIGENE KURS.</b>
+              <b>{sceneReady ? "GREIF DEN RING. SPÜR DIE WELLEN." : "DER EIGENE KURS."}</b>
             </span>
           </div>
           <div className="hero-bottom">
