@@ -2,50 +2,120 @@ import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { METRES_PER_UNIT, WATER_LEVEL } from "./waterScale";
+import { WATER_OPTICS_GLSL } from "./waterOptics";
 
-/** A deliberately illustrated destination after the real ocean descent. */
+/** A permanent, locally lit neighbourhood on the same ocean floor. */
 export function createBikiniBottom(scene: THREE.Scene) {
   const town = new THREE.Group();
   town.name = "Bikini Bottom — a day at Goo Lagoon";
   town.position.y = WATER_LEVEL - 1007 / METRES_PER_UNIT;
-  town.visible = false;
   scene.add(town);
   const architecture = new THREE.Group();
   town.add(architecture);
   const geometries = new Set<THREE.BufferGeometry>();
   const materials = new Set<THREE.Material>();
-  const palettes = new Map<THREE.MeshLambertMaterial, THREE.Color>();
+  const painted = new Set<THREE.ShaderMaterial>();
   const textures: THREE.Texture[] = [];
   const animated: { group: THREE.Group; y: number; phase: number; sway: number }[] = [];
   const v = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
 
-  const paint = (color: number, glow = 0.16) => {
-    const material = new THREE.MeshLambertMaterial({
-      color, emissive: color, emissiveIntensity: glow, fog: false,
+  // These positions are shared by the visible fixtures and their illumination.
+  // Positions and radiant power are fixed in world space, including during a
+  // reverse ascent. No camera-depth gate reveals or brightens the neighbourhood.
+  const lamps = [
+    { position: v(-25, 13, -49), color: 0xffce97, power: 17 },
+    { position: v(14, 24, -52), color: 0xffd3a8, power: 28 },
+    { position: v(-6, 22, -53), color: 0xb8e3f1, power: 24 },
+    { position: v(34, 16, -67), color: 0xa8dbe7, power: 19 },
+    { position: v(-19, 11, -10), color: 0xb9e1ed, power: 19 },
+    { position: v(18, 12, -13), color: 0xffd8b1, power: 20 },
+    { position: v(0, 17, -35), color: 0xffd5aa, power: 23 },
+    { position: v(43, 14, -34), color: 0xa3dce9, power: 18 },
+  ];
+  const lampUniforms = {
+    uLampPosition: { value: lamps.map(({ position }) => position.clone().add(town.position)) },
+    uLampColor: { value: lamps.map(({ color, power }) => new THREE.Color(color).multiplyScalar(power)) },
+  };
+  const worldVertex = `
+    varying vec3 vWorld, vWorldNormal;
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      vec4 world = modelMatrix * vec4(position, 1.);
+      vWorld = world.xyz;
+      vWorldNormal = normalize((vec4(normalMatrix * normal, 0.) * viewMatrix).xyz);
+      gl_Position = projectionMatrix * viewMatrix * world;
+    }`;
+  const townLighting = `
+    ${WATER_OPTICS_GLSL}
+    uniform vec3 uLampPosition[${lamps.length}], uLampColor[${lamps.length}];
+    uniform float uBlueprint;
+    varying vec3 vWorld, vWorldNormal;
+    varying vec2 vUv;
+    vec3 townLight(vec3 albedo, vec3 normal, float gloss) {
+      vec3 eye = normalize(cameraPosition - vWorld);
+      float depth = max(0., (${WATER_LEVEL.toFixed(2)} - vWorld.y) * ${METRES_PER_UNIT});
+      vec3 illumination = vec3(.55, .72, .82) * solarAtDepth(depth)
+        * max(.08, dot(normal, normalize(vec3(.18, 1., -.3))));
+      vec3 specular = vec3(0.);
+      for (int i = 0; i < ${lamps.length}; i++) {
+        vec3 delta = uLampPosition[i] - vWorld;
+        float metres = length(delta) * ${METRES_PER_UNIT};
+        vec3 direction = normalize(delta);
+        // Inverse-square falloff and the same wavelength extinction as the
+        // rest of the ocean, on the lamp-to-surface path as well as to the eye.
+        vec3 incoming = uLampColor[i] * exp(-metres * vec3(.11, .063, .052))
+          / (1. + metres * metres);
+        float diffuse = max(dot(normal, direction), 0.);
+        // A little local scattered/bounced light keeps shaded faces readable;
+        // it is supplied by these fixtures, not a depth-triggered global fill.
+        illumination += incoming * (.14 + diffuse * .86);
+        vec3 halfDirection = normalize(direction + eye);
+        specular += incoming * pow(max(dot(normal, halfDirection), 0.), 40.) * gloss;
+      }
+      vec3 base = mix(albedo, vec3(.08, .28, .35), uBlueprint * .7);
+      return base * illumination + specular;
+    }`;
+
+  const paint = (color: number) => {
+    const albedo = new THREE.Color(color);
+    // Retain each character's identity, with weathered, less saturated paint.
+    albedo.lerp(new THREE.Color(0x81959b), .12).multiplyScalar(.87);
+    const material = new THREE.ShaderMaterial({
+      uniforms: { ...lampUniforms, uAlbedo: { value: albedo }, uBlueprint: { value: 0 } },
+      vertexShader: worldVertex,
+      fragmentShader: `${townLighting}
+        uniform vec3 uAlbedo;
+        void main() {
+          vec3 lit = townLight(uAlbedo, normalize(vWorldNormal), .06);
+          gl_FragColor = vec4(underwaterExtinction(lit, vWorld, cameraPosition), 1.);
+          #include <tonemapping_fragment>
+          #include <colorspace_fragment>
+        }`,
     });
     materials.add(material);
-    palettes.set(material, new THREE.Color(color));
+    painted.add(material);
     return material;
   };
-  const sand = paint(0xe6c791, 0.28);
-  const path = paint(0xbed3c3, 0.24);
+  const sand = paint(0xbcb499);
+  const path = paint(0x8eaba7);
   const peach = paint(0xe8aa7a);
   const orange = paint(0xe99424);
   const orangeDark = paint(0xa45b20);
-  const yellow = paint(0xf6ce31, 0.28);
-  const pore = paint(0xd29d16, 0.24);
-  const pink = paint(0xef8d9d, 0.22);
+  const yellow = paint(0xf6ce31);
+  const pore = paint(0xd29d16);
+  const pink = paint(0xef8d9d);
   const green = paint(0x92cb55);
   const leaf = paint(0x569a36);
   const leafLight = paint(0x7eb73e);
   const violet = paint(0xa45ba3);
-  const turquoise = paint(0x85b7b4, 0.2);
+  const turquoise = paint(0x85b7b4);
   const slate = paint(0x657fa0);
   const slateLight = paint(0x8098b5);
-  const blue = paint(0x479bd3, 0.24);
-  const deepBlue = paint(0x255673, 0.2);
-  const white = paint(0xf6f0dc, 0.3);
-  const black = paint(0x243d49, 0.08);
+  const blue = paint(0x479bd3);
+  const deepBlue = paint(0x255673);
+  const white = paint(0xe4e5dc);
+  const black = paint(0x243d49);
   const brown = paint(0x976049);
   const brownLight = paint(0xc08a58);
   const red = paint(0xe65a55);
@@ -93,6 +163,101 @@ export function createBikiniBottom(scene: THREE.Scene) {
     target.add(result);
     return result;
   };
+  const inflatedVolume = (target: THREE.Object3D, material: THREE.Material,
+    outline: [number, number][], centreY: number, halfDepth: number) => {
+    const shape = new THREE.Shape();
+    for (let i = 0; i < outline.length; i++) {
+      const point = new THREE.Vector2(...outline[i]);
+      const previous = new THREE.Vector2(...outline[(i + outline.length - 1) % outline.length]);
+      const next = new THREE.Vector2(...outline[(i + 1) % outline.length]);
+      const arrival = point.clone().lerp(previous, .18);
+      const departure = point.clone().lerp(next, .18);
+      if (i === 0) shape.moveTo(arrival.x, arrival.y);
+      else shape.lineTo(arrival.x, arrival.y);
+      shape.quadraticCurveTo(point.x, point.y, departure.x, departure.y);
+    }
+    shape.closePath();
+    // Sample the smooth outline by polar angle around the belly. Latitude
+    // rings inflate both sides, sharing the equator and tip normals;
+    // unlike extrusion, every arm/head tip tapers to a rounded narrow edge.
+    const boundary = shape.getSpacedPoints(512);
+    const angular = 128; const latitudes = 40;
+    const radii: number[] = [];
+    const cross = (ax: number, ay: number, bx: number, by: number) => ax * by - ay * bx;
+    for (let i = 0; i < angular; i++) {
+      const angle = i / angular * Math.PI * 2;
+      const dx = Math.cos(angle); const dy = Math.sin(angle);
+      let distance = Infinity;
+      for (let j = 0; j < boundary.length - 1; j++) {
+        const a = boundary[j]; const b = boundary[j + 1];
+        const sx = b.x - a.x; const sy = b.y - a.y;
+        const denominator = cross(dx, dy, sx, sy);
+        if (Math.abs(denominator) < 1e-8) continue;
+        const t = cross(a.x, a.y - centreY, sx, sy) / denominator;
+        const u = cross(a.x, a.y - centreY, dx, dy) / denominator;
+        if (t > 0 && u >= 0 && u <= 1) distance = Math.min(distance, t);
+      }
+      radii.push(Number.isFinite(distance) ? distance : 1);
+    }
+    // Remove tiny angular sampling changes before they can print radial bands
+    // into the smooth surface, without losing the five-point outline.
+    for (let pass = 0; pass < 3; pass++) {
+      const before = radii.slice();
+      for (let i = 0; i < angular; i++) {
+        radii[i] = (before[(i + angular - 1) % angular] + before[i] * 2 + before[(i + 1) % angular]) / 4;
+      }
+    }
+    const radiusAt = (angle: number) => {
+      const index = ((angle / (Math.PI * 2) + 1) % 1) * angular;
+      return THREE.MathUtils.lerp(radii[Math.floor(index)], radii[(Math.floor(index) + 1) % angular], index % 1);
+    };
+    const frontAt = (x: number, y: number) => {
+      const radius = radiusAt(Math.atan2(y - centreY, x));
+      const radial = Math.hypot(x, y - centreY) / radius;
+      // The quartic boundary profile suppresses star-angle creases at the
+      // centre. A broad independent dome gives the belly a round curvature
+      // instead of flattening it into a plate or forming an origami hub.
+      const dome = Math.exp(-.032 * x * x - .012 * (y - centreY) ** 2);
+      return halfDepth * dome * Math.sqrt(Math.max(0, 1 - radial ** 4));
+    };
+    const normalAt = (x: number, y: number) => v(
+      -(frontAt(x + .005, y) - frontAt(x - .005, y)) / .01,
+      -(frontAt(x, y + .005) - frontAt(x, y - .005)) / .01, 1,
+    ).normalize();
+    const positions = [0, centreY, halfDepth];
+    const uvs = [0, centreY];
+    const indices: number[] = [];
+    for (let latitude = 1; latitude < latitudes; latitude++) {
+      const phi = latitude / latitudes * Math.PI;
+      for (let i = 0; i < angular; i++) {
+        const angle = i / angular * Math.PI * 2;
+        const r = Math.sin(phi) * radii[i];
+        const x = Math.cos(angle) * r; const y = centreY + Math.sin(angle) * r;
+        const z = Math.abs(Math.cos(phi)) < 1e-6 ? 0 : Math.sign(Math.cos(phi)) * frontAt(x, y);
+        positions.push(x, y, z);
+        uvs.push(x, y);
+      }
+    }
+    const back = positions.length / 3;
+    positions.push(0, centreY, -halfDepth); uvs.push(0, centreY);
+    for (let i = 0; i < angular; i++) {
+      const next = (i + 1) % angular;
+      indices.push(0, 1 + i, 1 + next);
+      for (let ring = 0; ring < latitudes - 2; ring++) {
+        const a = 1 + ring * angular + i; const d = 1 + ring * angular + next;
+        const b = a + angular; const c = d + angular;
+        indices.push(a, b, c, a, c, d);
+      }
+      const last = 1 + (latitudes - 2) * angular;
+      indices.push(last + i, back, last + next);
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+    return { body: mesh(target, geometry, material), frontAt, normalAt };
+  };
 
   // Bake each still-life or character into one draw per colour. Hundreds of
   // modelling details should not turn into hundreds of mobile draw calls.
@@ -126,9 +291,41 @@ export function createBikiniBottom(scene: THREE.Scene) {
     }
   }
 
+  // Visible sealed lamps account for every source in townLight(). Their lenses
+  // alone emit; the houses, people, sign, sand and lagoon only reflect light.
+  for (const [index, lamp] of lamps.entries()) {
+    const fixture = groupAt(architecture, `Sealed ocean lamp ${index + 1}`, 0, 0, 0);
+    const { x, y, z } = lamp.position;
+    const poleX = x + 1.4;
+    rod(fixture, slate, v(poleX, .5, z), v(poleX, y + 1.05, z), .22, .15);
+    rod(fixture, silver, v(poleX, y + .9, z), v(x, y + .9, z), .16);
+    ring(fixture, silver, x, y - .4, z, .64, .13, true);
+    ring(fixture, silver, x, y + .45, z, .64, .13, true);
+    const hood = mesh(fixture, new THREE.ConeGeometry(.9, .48, 12), slate, x, y + .78, z);
+    hood.name = "Lamp weather hood";
+    for (let bar = 0; bar < 4; bar++) {
+      const angle = bar * Math.PI * .5;
+      const dx = Math.cos(angle) * .65; const dz = Math.sin(angle) * .65;
+      rod(fixture, silver, v(x + dx, y - .4, z + dz), v(x + dx, y + .45, z + dz), .055);
+    }
+    const lensMaterial = new THREE.ShaderMaterial({
+      uniforms: { uEmission: { value: new THREE.Color(lamp.color).multiplyScalar(3.5) } },
+      vertexShader: worldVertex,
+      fragmentShader: `${WATER_OPTICS_GLSL}
+        varying vec3 vWorld;
+        uniform vec3 uEmission;
+        void main() {
+          gl_FragColor = vec4(underwaterExtinction(uEmission, vWorld, cameraPosition), 1.);
+          #include <tonemapping_fragment>
+          #include <colorspace_fragment>
+        }`,
+    });
+    materials.add(lensMaterial);
+    sphere(fixture, lensMaterial, x, y, z, .57, .43, .57);
+  }
+
   // The sandy seabed continues beyond the town. A low dune gives the
   // neighbourhood shape without leaving an island floating in open water.
-  sand.fog = true;
   const seabed = mesh(architecture, new THREE.PlaneGeometry(2400, 2400), sand, 0, -4, -41);
   seabed.rotation.x = -Math.PI / 2;
   sphere(architecture, sand, 0, -5.5, -41, 98, 6, 97);
@@ -145,10 +342,13 @@ export function createBikiniBottom(scene: THREE.Scene) {
   }
 
   function porthole(target: THREE.Group, x: number, y: number, z: number, size: number) {
-    sphere(target, blue, x, y, z, size, size, 0.25);
-    ring(target, silver, x, y, z + 0.18, size, 0.23);
-    rod(target, white, v(x - size * 0.5, y + size * 0.52, z + 0.31),
-      v(x + size * 0.22, y + size * 0.8, z + 0.31), 0.08);
+    const collar = mesh(target, new THREE.CylinderGeometry(size + .12, size + .17, .65, 32),
+      slate, x, y, z - .16);
+    collar.rotation.x = Math.PI / 2;
+    sphere(target, blue, x, y, z + .16, size * .88, size * .88, .12);
+    ring(target, silver, x, y, z + .25, size, 0.18);
+    rod(target, white, v(x - size * 0.5, y + size * 0.52, z + 0.29),
+      v(x + size * 0.22, y + size * 0.8, z + 0.29), 0.055);
     for (let i = 0; i < 8; i++) {
       const a = i * Math.PI / 4;
       sphere(target, deepBlue, x + Math.cos(a) * size, y + Math.sin(a) * size, z + 0.38, 0.085);
@@ -172,6 +372,15 @@ export function createBikiniBottom(scene: THREE.Scene) {
     }
     return 2.6;
   };
+  function fruitMount(name: string, x: number, y: number) {
+    const radius = fruitRadius(y);
+    const z = Math.sqrt(Math.max(.01, radius * radius - x * x));
+    const slope = (fruitRadius(y + .03) - fruitRadius(y - .03)) / .06;
+    const outward = v(x / radius, -slope, z / radius).normalize();
+    const mount = groupAt(pineapple, name, x, y, z);
+    mount.quaternion.setFromUnitVectors(v(0, 0, 1), outward);
+    return mount;
+  }
   for (const sign of [-1, 1]) {
     for (let strand = 0; strand < 12; strand++) {
       const points: THREE.Vector3[] = [];
@@ -197,15 +406,17 @@ export function createBikiniBottom(scene: THREE.Scene) {
     blade.rotation.y = angle;
     blade.rotation.x = 0.3 + (i % 4) * 0.13;
   }
-  box(pineapple, deepBlue, 0, 3.9, 6.3, 3.9, 7.5, 0.7, 1.7);
-  box(pineapple, blue, 0, 3.9, 6.73, 3.05, 6.7, 0.3, 1.4);
-  ring(pineapple, silver, 0, 4, 7, 0.63, 0.12);
+  const door = fruitMount("Door mounted to the pineapple skin", 0, 3.9);
+  // The deep socket intersects the narrowing fruit even at the bottom corners.
+  box(door, deepBlue, 0, 0, -1.15, 3.9, 7.5, 4.2, 1.2);
+  box(door, blue, 0, 0, .88, 3.05, 6.7, .23, 1.05);
+  ring(door, silver, 0, .1, 1.08, .63, .12);
   for (let i = 0; i < 6; i++) {
     const a = i * Math.PI / 3;
-    rod(pineapple, silver, v(0, 4, 7), v(Math.cos(a) * 0.95, 4 + Math.sin(a) * 0.95, 7), 0.07);
+    rod(door, silver, v(0, .1, 1.08), v(Math.cos(a) * .95, .1 + Math.sin(a) * .95, 1.08), .07);
   }
-  porthole(pineapple, -3.5, 11.6, 5.75, 1.7);
-  porthole(pineapple, 3.3, 15.1, 4.3, 1.35);
+  porthole(fruitMount("Lower tangent-mounted porthole", -3.5, 11.6), 0, 0, .04, 1.7);
+  porthole(fruitMount("Upper tangent-mounted porthole", 3.3, 15.1), 0, 0, .04, 1.35);
   tube(pineapple, silver, [v(5, 14, 0), v(8, 15, 0), v(8.5, 18, 0), v(10, 18, 0)], 0.7);
   for (let i = 0; i < 4; i++) box(pineapple, white, 0, 0.25 + i * 0.15, 9 - i, 4.4, 0.5, 1.4);
 
@@ -238,11 +449,22 @@ export function createBikiniBottom(scene: THREE.Scene) {
   // Sandy’s tree dome is a small fourth landmark behind the beach.
   const domeHome = groupAt(architecture, "Sandy’s tree dome", 34, 0.8, -81);
   ring(domeHome, silver, 0, 0, 0, 9.5, 0.55, true);
-  const glass = new THREE.MeshPhongMaterial({
-    color: 0xb0ebd5, transparent: true, opacity: 0.1,
-    shininess: 80, specular: 0xffffff, depthWrite: false, fog: false,
+  const glass = new THREE.ShaderMaterial({
+    uniforms: { ...lampUniforms, uBlueprint: { value: 0 } },
+    transparent: true, depthWrite: false,
+    vertexShader: worldVertex,
+    fragmentShader: `${townLighting}
+      void main() {
+        vec3 normal = normalize(vWorldNormal);
+        float fresnel = pow(1. - abs(dot(normal, normalize(cameraPosition - vWorld))), 4.);
+        vec3 lit = townLight(vec3(.08, .15, .17), normal, .9);
+        gl_FragColor = vec4(underwaterExtinction(lit, vWorld, cameraPosition), .025 + fresnel * .22);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
   });
   materials.add(glass);
+  painted.add(glass);
   const treeGlass = mesh(town, new THREE.SphereGeometry(9.5, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), glass, 34, 0.8, -81);
   treeGlass.name = "Transparent tree dome";
   rod(domeHome, brown, v(0, 0, 0), v(0, 7.4, 0), 0.7, 0.35);
@@ -252,25 +474,26 @@ export function createBikiniBottom(scene: THREE.Scene) {
   // Goo Lagoon: the cartoon's deliberately impossible beach beneath the sea.
   sphere(architecture, peach, 0, 0.25, -25, 19, 0.7, 13);
   const lagoonMaterial = new THREE.ShaderMaterial({
-    uniforms: { uTime: { value: 0 }, uBlueprint: { value: 0 } },
+    uniforms: { ...lampUniforms, uTime: { value: 0 }, uBlueprint: { value: 0 } },
     side: THREE.DoubleSide,
-    vertexShader: `varying vec2 vUv;
-      void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`,
-    fragmentShader: `uniform float uTime, uBlueprint; varying vec2 vUv;
+    vertexShader: worldVertex,
+    fragmentShader: `${townLighting}
+      uniform float uTime;
       void main() {
         vec2 p = (vUv - .5) * 2.;
         float shore = smoothstep(.77, 1., length(p));
-        float ripples = sin(p.x * 45. + sin(p.y * 34. + uTime * .8) * 2. + uTime);
-        float ripple = smoothstep(.85, .99, ripples) * .11;
-        vec3 water = mix(vec3(.04, .61, .75), vec3(.17, .8, .79), .5 + p.y * .3);
-        water += ripple;
-        water = mix(water, vec3(.81, .96, .83), shore * .88);
-        gl_FragColor = vec4(mix(water, vec3(.04, .26, .36), uBlueprint * .65), 1.);
+        vec3 normal = normalize(vec3(
+          cos(p.x * 31. + p.y * 6. + uTime * .7) * .07,
+          1., cos(p.y * 27. - uTime * .5) * .055));
+        vec3 water = mix(vec3(.015, .045, .058), vec3(.19, .23, .21), shore * .65);
+        vec3 lit = townLight(water, normal, .8);
+        gl_FragColor = vec4(underwaterExtinction(lit, vWorld, cameraPosition), 1.);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }`,
   });
   materials.add(lagoonMaterial);
+  painted.add(lagoonMaterial);
   const lagoon = mesh(town, new THREE.CircleGeometry(1, 64), lagoonMaterial, 0, 1.02, -25);
   lagoon.rotation.x = -Math.PI / 2;
   lagoon.scale.set(17.5, 11.3, 1);
@@ -323,8 +546,8 @@ export function createBikiniBottom(scene: THREE.Scene) {
   const tie = mesh(sponge, new THREE.ConeGeometry(0.4, 1.1, 4), red, 0, 2.32, 1.04);
   tie.rotation.z = Math.PI;
   sphere(sponge, red, 0, 2.85, 1.04, 0.22);
-  eye(sponge, -1.08, 5.9, 0.97, 1.13);
-  eye(sponge, 1.08, 5.9, 0.97, 1.13);
+  eye(sponge, -1.15, 5.9, 0.97, 1.07);
+  eye(sponge, 1.15, 5.9, 0.97, 1.07);
   sphere(sponge, yellow, 0, 5.05, 1.4, 0.35, 0.7, 0.7);
   smile(sponge, 0, 3.95, 1.05, 1.5);
   box(sponge, white, -0.38, 3.8, 1.17, 0.6, 0.68, 0.3, 0.03);
@@ -353,48 +576,93 @@ export function createBikiniBottom(scene: THREE.Scene) {
 
   const patrick = groupAt(town, "Patrick on his float", 5, 0.55, -17.5);
   patrick.rotation.y = -0.1;
-  sphere(patrick, pink, 0, 4.4, 0, 2.5, 3, 1.35);
-  const head = mesh(patrick, new THREE.ConeGeometry(1.85, 5.1, 24), pink, 0, 7, 0);
-  head.scale.z = 0.73;
-  sphere(patrick, green, 0, 2.35, 0, 2.55, 1.25, 1.42);
+  const patrickMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      ...lampUniforms, uBlueprint: { value: 0 },
+      uSkin: { value: pink.uniforms.uAlbedo.value },
+      uShorts: { value: green.uniforms.uAlbedo.value },
+      uFlowers: { value: violet.uniforms.uAlbedo.value },
+    },
+    vertexShader: worldVertex,
+    fragmentShader: `${townLighting}
+      uniform vec3 uSkin, uShorts, uFlowers;
+      float flower(vec2 centre) {
+        vec2 delta = vUv - centre;
+        float petal = .31 + .115 * cos(atan(delta.y, delta.x) * 5.);
+        return 1. - smoothstep(petal - .025, petal + .025, length(delta));
+      }
+      void main() {
+        // Cloth follows the actual curved volume around both legs and belly.
+        float cloth = (1. - smoothstep(3.51, 3.57, vUv.y)) * smoothstep(1.08, 1.14, vUv.y);
+        float petals = max(flower(vec2(-1.2, 2.65)), max(flower(vec2(1.5, 2.2)), flower(vec2(.2, 1.85))));
+        vec3 albedo = mix(uSkin, mix(uShorts, uFlowers, petals), cloth);
+        vec3 lit = townLight(albedo, normalize(vWorldNormal), .055);
+        gl_FragColor = vec4(underwaterExtinction(lit, vWorld, cameraPosition), 1.);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
+  });
+  materials.add(patrickMaterial); painted.add(patrickMaterial);
+  const { body: patrickBody, frontAt, normalAt } = inflatedVolume(patrick, patrickMaterial, [
+    [0, 10.25], [1.62, 6.42], [4.65, 6.8], [2.18, 4.1], [2.4, .25],
+    [0, 1.7], [-2.4, .25], [-2.18, 4.1], [-4.65, 6.8], [-1.62, 6.42],
+  ], 4.3, 1.8);
+  patrickBody.name = "Patrick inflated continuous five-point body";
+  const faceMount = (name: string, x: number, y: number, offset = 0) => {
+    const mount = groupAt(patrick, name, x, y, frontAt(x, y) + offset);
+    mount.quaternion.setFromUnitVectors(v(0, 0, 1), normalAt(x, y));
+    return mount;
+  };
   for (const side of [-1, 1]) {
-    const arm = rod(patrick, pink, v(side * 1.7, 4.7, 0), v(side * 4.6, 6.45, 0.1), 0.94, 0.06);
-    arm.rotation.z += side * -0.06;
-    rod(patrick, pink, v(side * 1.2, 2, 0), v(side * 1.55, 0.4, 0.4), 0.73, 0.35);
-    eye(patrick, side * 0.55, 6.3, 1.02, 0.6, black);
-    box(patrick, black, side * 0.62, 7.2, 1.01, 0.66, 0.15, 0.12);
+    eye(faceMount("Eye on curved face", side * .59, 6.6, -.025), 0, 0, 0, .55, black);
+    box(faceMount("Eyebrow on curved face", side * .6, 7.42, .025), black, 0, 0, 0, .62, .13, .08, .035);
   }
-  smile(patrick, 0, 5.03, 1.32, 0.82);
-  sphere(patrick, brown, 0, 3.6, 1.33, 0.12);
-  for (const [x, y] of [[-1.2, 2.65], [1.5, 2.2], [0.2, 1.85]]) {
-    for (let petal = 0; petal < 5; petal++) {
-      const a = petal * Math.PI * 0.4;
-      sphere(patrick, violet, x + Math.cos(a) * 0.22, y + Math.sin(a) * 0.22, 1.36, 0.21, 0.21, 0.07);
-    }
+  const grin: THREE.Vector3[] = [];
+  for (let i = 0; i <= 8; i++) {
+    const x = -.82 + i / 8 * 1.64;
+    const y = 4.98 + .4 * (x / .82) ** 2;
+    grin.push(v(x, y, frontAt(x, y) + .025));
   }
+  tube(patrick, brown, grin, .055);
+  sphere(faceMount("Navel on curved belly", 0, 3.9, .01), brown, 0, 0, 0, .1, .1, .035);
   ring(patrick, gold, 0, 1.4, 0, 3.4, 0.5, true).scale.y = 0.8;
   floating(patrick, 2.3, 0.04);
 
   const squid = groupAt(town, "Squidward reluctantly at the beach", -13.3, 0.8, -30);
   squid.rotation.y = 0.12;
-  sphere(squid, turquoise, 0, 8.8, 0, 2.3, 2.55, 1.6);
-  sphere(squid, turquoise, 0, 6.6, 0, 0.62, 1.3, 0.58);
-  mesh(squid, new THREE.CylinderGeometry(0.8, 1.45, 2.45, 16), brown, 0, 4.8, 0);
-  eye(squid, -0.65, 8.5, 1.3, 0.75, red, true);
-  eye(squid, 0.65, 8.5, 1.3, 0.75, red, true);
-  sphere(squid, turquoise, 0, 7.2, 2.1, 0.56, 1.38, 0.66);
-  tube(squid, deepBlue, [v(-0.7, 6.8, 1.31), v(0, 6.65, 1.5), v(0.7, 6.8, 1.31)], 0.045);
+  const headProfile = new THREE.CatmullRomCurve3([
+    v(0, 6.75, 0), v(.55, 6.95, 0), v(.94, 7.5, 0),
+    v(1.24, 8.25, 0), v(1.52, 9.15, 0), v(1.58, 9.75, 0),
+    v(1.29, 10.45, 0), v(.7, 10.85, 0), v(0, 11, 0),
+  ]).getPoints(40).map((point) => new THREE.Vector2(Math.max(0, point.x), point.y));
+  const squidHead = mesh(squid, new THREE.LatheGeometry(headProfile, 32), turquoise);
+  squidHead.scale.z = .69;
+  squidHead.name = "Squidward elongated tapered head";
+  sphere(squid, turquoise, 0, 6.55, 0, .47, 1.08, .45);
+  mesh(squid, new THREE.CylinderGeometry(.9, 1.5, 2.8, 20), brown, 0, 4.95, 0);
+  eye(squid, -.59, 8.65, .98, .55, red, true);
+  eye(squid, .59, 8.65, .98, .55, red, true);
+  sphere(squid, turquoise, 0, 7.7, 1.49, .43, 1.07, .54);
+  tube(squid, deepBlue, [v(-.55, 7.4, .48), v(0, 7.25, .55), v(.55, 7.4, .48)], .045);
   for (let i = 0; i < 4; i++) {
     const x = (i - 1.5) * 0.65;
     tube(squid, turquoise, [v(x * 0.5, 3.7, 0), v(x, 1.4, 0.1), v(x * 1.5, 0.4, 0.75),
-      v(x * 1.75, 0.5, 1.3)], 0.27);
+      v(x * 1.75, 0.5, 1.3)], .3);
   }
   for (const side of [-1, 1]) {
     sphere(squid, brown, side * 1.17, 5.45, 0, 0.6, 0.65, 0.6);
     tube(squid, turquoise, [v(side * 1.3, 5.3, 0), v(side * 2.3, 4.15, 0),
       v(side * 1.35, 3.7, 1), v(side * 0.1, 4.1, 1.3)], 0.23);
   }
-  for (let i = 0; i < 5; i++) sphere(squid, slate, Math.sin(i * 1.8) * 1.1, 10.2 + Math.cos(i) * 0.3, 1.05, 0.12, 0.15, 0.08);
+  for (let i = 0; i < 5; i++) {
+    const x = Math.sin(i * 1.8) * .8;
+    const y = 10.15 + Math.cos(i) * .26;
+    const index = headProfile.findIndex((point) => point.y >= y);
+    const lower = headProfile[Math.max(0, index - 1)]; const upper = headProfile[Math.max(1, index)];
+    const radius = THREE.MathUtils.lerp(lower.x, upper.x, (y - lower.y) / (upper.y - lower.y));
+    const z = Math.sqrt(Math.max(0, radius * radius - x * x)) * .69 + .012;
+    sphere(squid, slate, x, y, z, .085, .11, .025);
+  }
   floating(squid, 0.8, 0.012);
 
   const sandy = groupAt(town, "Sandy in her diving suit", 13.5, 0.8, -28);
@@ -468,39 +736,39 @@ export function createBikiniBottom(scene: THREE.Scene) {
       const texture = new THREE.CanvasTexture(canvas);
       texture.colorSpace = THREE.SRGBColorSpace;
       textures.push(texture);
-      const signMaterial = new THREE.MeshBasicMaterial({ map: texture, fog: false });
+      const signMaterial = new THREE.ShaderMaterial({
+        uniforms: { ...lampUniforms, uMap: { value: texture }, uBlueprint: { value: 0 } },
+        vertexShader: worldVertex,
+        fragmentShader: `${townLighting}
+          uniform sampler2D uMap;
+          void main() {
+            vec3 albedo = texture2D(uMap, vUv).rgb;
+            vec3 lit = townLight(albedo, normalize(vWorldNormal), .025);
+            gl_FragColor = vec4(underwaterExtinction(lit, vWorld, cameraPosition), 1.);
+            #include <tonemapping_fragment>
+            #include <colorspace_fragment>
+          }`,
+      });
       materials.add(signMaterial);
+      painted.add(signMaterial);
       mesh(architecture, new THREE.PlaneGeometry(14, 4.67), signMaterial, 0, 13.5, -44);
       for (const x of [-6.6, 6.6]) rod(architecture, brown, v(x, 0.4, -44.3), v(x, 15.6, -44.3), 0.26);
     }
   }
   bake(architecture);
 
-  const light = new THREE.DirectionalLight(0xffebc9, 2.1);
-  light.position.set(-28, 65, 30);
-  light.target.position.set(0, 0, -35);
-  town.add(light, light.target);
-  const fill = new THREE.HemisphereLight(0xc4f5ee, 0xbe956c, 1.4);
-  town.add(fill);
   let lastBlueprint = false;
 
   return {
-    update(depth: number, time: number, blueprint: boolean, underwater: number, camera: THREE.Camera) {
-      town.visible = depth > 850 && underwater > 0.1;
-      if (!town.visible) return;
+    update(time: number, blueprint: boolean) {
       lagoonMaterial.uniforms.uTime.value = time;
-      lagoonMaterial.uniforms.uBlueprint.value = blueprint ? 1 : 0;
       for (const item of animated) {
         item.group.position.y = item.y + Math.sin(time * 1.25 + item.phase) * 0.14;
         item.group.rotation.z = Math.sin(time * 0.85 + item.phase) * item.sway;
       }
-      // The camera remains in the same ocean world; no screen-space model swap.
-      light.intensity = THREE.MathUtils.smoothstep(depth, 920, 988) * 2.1;
-      fill.intensity = THREE.MathUtils.smoothstep(depth, 920, 988) * 1.4;
-      treeGlass.visible = camera.position.y < town.position.y + 140;
       if (lastBlueprint !== blueprint) {
-        for (const [material, color] of palettes) {
-          material.color.copy(blueprint ? new THREE.Color(0x78bfd0) : color);
+        for (const material of painted) {
+          material.uniforms.uBlueprint.value = blueprint ? 1 : 0;
           material.wireframe = blueprint;
         }
         lastBlueprint = blueprint;

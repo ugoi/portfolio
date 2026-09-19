@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { cameraAtDive, depthAtScroll, depthAtProgress, MAX_DIVE_DEPTH } from '../src/dive.ts';
+import { advanceDiveDepth, cameraAtDive, depthAtScroll, depthAtProgress, MAX_DIVE_DEPTH } from '../src/dive.ts';
 
 test('descent clamps outside the document and holds at the destination', () => {
   assert.equal(depthAtScroll(-100, 0, 7600, 1000), 0);
@@ -47,4 +47,20 @@ test('gauge excludes the above-water approach and reaches the actual kilometre',
       previous = camera.depth;
     }
   }
+});
+
+test('camera smoothing is monotonic and independent of render cadence', () => {
+  const result = rate => {
+    let depth = 0;
+    for (let i = 0; i < rate; i++) {
+      const next = advanceDiveDepth(depth, 1000, 1 / rate);
+      assert.ok(next >= depth && next <= 1000);
+      depth = next;
+    }
+    return depth;
+  };
+  assert.ok(Math.abs(result(30) - result(120)) < 1e-8);
+  assert.ok(result(60) > 999 && result(60) < 1000);
+  assert.equal(advanceDiveDepth(1000, 1000, 1), 1000);
+  assert.equal(advanceDiveDepth(0, 1000, 0), 0);
 });
