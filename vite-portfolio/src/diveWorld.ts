@@ -1,11 +1,14 @@
 import * as THREE from "three";
 import { METRES_PER_UNIT, WATER_LEVEL, WAVE_GLSL, WAVE_GLSL_CALLS } from "./waves";
+import { SKY_GLSL, SUN_DIRECTION } from "./lighting";
 
 // The buoy and the pool use the same world scale: four scene units per metre.
 // The camera can reach 40 m with enough space left above the tiled floor.
 const RADIUS = 22;
 const FLOOR_DEPTH = 40.9;
 const HEIGHT = FLOOR_DEPTH / METRES_PER_UNIT;
+const LAMP_DEPTHS = [5, 15, 25, 35] as const;
+const LAMPS_PER_LEVEL = 6;
 
 export interface DiveWorld {
   update: (depth: number, time: number, blueprint: boolean, underwater: number) => void;
@@ -17,6 +20,7 @@ export function createDiveWorld(scene: THREE.Scene): DiveWorld {
   group.name = "Deep diving pool";
   scene.add(group);
   const textures: THREE.Texture[] = [];
+  const instances: THREE.InstancedMesh[] = [];
   const materials = new Set<THREE.Material>();
   const geometries = new Set<THREE.BufferGeometry>();
   const add = <T extends THREE.Material>(geometry: THREE.BufferGeometry, material: T) => {
@@ -32,6 +36,7 @@ export function createDiveWorld(scene: THREE.Scene): DiveWorld {
     uBlueprint: { value: 0 },
     uUnderwater: { value: 0 },
     uFog: { value: new THREE.Color(0x07343f) },
+    uSunDirection: { value: new THREE.Vector3(...SUN_DIRECTION).normalize() },
   };
   const tiled = new THREE.ShaderMaterial({
     side: THREE.BackSide,
@@ -45,7 +50,7 @@ export function createDiveWorld(scene: THREE.Scene): DiveWorld {
       }`,
     fragmentShader: `
       uniform float uTime, uDepth, uBlueprint, uFloor, uUnderwater;
-      uniform vec3 uFog;
+      uniform vec3 uFog, uSunDirection;
       varying vec3 vWorld;
       float grid(vec2 uv) {
         vec2 d = abs(fract(uv - .5) - .5) / max(fwidth(uv), vec2(.015));
@@ -86,29 +91,54 @@ export function createDiveWorld(scene: THREE.Scene): DiveWorld {
         float grout = grid(tileUV);
         vec2 tileID = floor(tileUV);
         float variation = fract(sin(dot(tileID, vec2(27.31, 83.17))) * 43758.5453);
-        vec3 tile = mix(vec3(.21, .48, .48), vec3(.30, .57, .56), variation * .6);
+        vec3 tile = mix(vec3(.30, .48, .48), vec3(.41, .60, .58), variation * .55);
         // Dark ceramic bands are built into the wall at each five-metre level.
         float band = 1.0 - smoothstep(.11, .15, abs(mod(depth + .15, 5.0) - .15));
         float verticalStripe = 1.0 - smoothstep(.028, .055, abs(sin(angle * 2.0)));
         tile = mix(tile, vec3(.028, .12, .18), max(band * .88, verticalStripe * .58) * (1.0 - uFloor));
-        tile = mix(tile, tile * .47, grout * .6);
-        // Intersecting refracted wave patterns, strongest near the surface.
+        tile = mix(tile, vec3(.09, .16, .17), grout * .62);
+        vec3 normal = mix(normalize(vec3(-vWorld.x, 0., -vWorld.z)), vec3(0., 1., 0.), uFloor);
+        vec3 eye = normalize(cameraPosition - vWorld);
+        // The sun refracts at the air/water boundary. A ray must reach the
+        // opening without passing through the concrete wall to light a tile.
+        vec3 sun = -refract(-uSunDirection, vec3(0., 1., 0.), 1.0 / 1.333);
+        vec3 opening = vWorld + sun * (${WATER_LEVEL.toFixed(2)} - vWorld.y) / max(.1, sun.y);
+        float openingLight = 1.0 - smoothstep(${(RADIUS - 1.3).toFixed(2)}, ${RADIUS.toFixed(2)}, length(opening.xz));
         vec2 p = surface * .46;
         float caustic = causticLight(p);
         float sunlight = exp(-depth * .073);
-        // A row of inset pool lights gives the deep section readable scale.
-        float lampDepth = mod(depth - 2.5 + 5.0, 10.0) - 5.0;
-        float lampAngle = mod(angle + .28 + 1.0472, 2.0944) - 1.0472;
-        float lampGlow = exp(-lampDepth * lampDepth * .38 - lampAngle * lampAngle * 11.0);
-        float sideLight = .5 + .5 * max(0.0, cos(angle + .55));
-        float broadShimmer = .88 + .12 * sin(surface.x * .16 + sin(surface.y * .11) + uTime * .09);
-        vec3 illumination = vec3(.18, .30, .37)
-          + vec3(.63, .70, .61) * sunlight * sideLight * broadShimmer;
+        float incidence = max(.0, dot(normal, sun));
+        vec3 illumination = vec3(.16, .25, .30) + vec3(.34, .46, .43) * sunlight;
+        illumination += vec3(1.08, .98, .72) * sunlight * openingLight * incidence;
+        // Lights use the same positions as the visible recessed fittings.
+        // The nearest level dominates; distant levels become the soft ambient
+        // bounce above, keeping this bounded to six lights per fragment.
+        float lampLevel = clamp(floor((depth - 5.0) / 10.0 + .5), 0., 3.) * 10.0 + 5.0;
+        vec3 specular = vec3(0.);
+        for (int index = 0; index < ${LAMPS_PER_LEVEL}; index++) {
+          float a = float(index) * 1.04719755 + .52359878;
+          vec3 inward = vec3(-sin(a), 0., cos(a));
+          vec3 lamp = vec3(sin(a) * ${(RADIUS - .48).toFixed(2)}, ${WATER_LEVEL.toFixed(2)} - lampLevel / .25, -cos(a) * ${(RADIUS - .48).toFixed(2)});
+          vec3 toLamp = lamp - vWorld;
+          float distanceM = length(toLamp) * .25;
+          vec3 lightDirection = normalize(toLamp);
+          float diffuse = max(0., dot(normal, lightDirection));
+          float forward = max(0., dot(inward, -lightDirection));
+          // The small broad lobe represents light scattered off the fixture
+          // surround. The forward lobe travels into the water and across tiles.
+          float distribution = .11 + .89 * forward * forward;
+          vec3 transmittance = exp(-distanceM * vec3(.19, .075, .055));
+          vec3 lampLight = vec3(1.0, .86, .64) * transmittance
+            * (24.0 * distribution / (.24 + distanceM * distanceM));
+          illumination += lampLight * diffuse;
+          vec3 halfVector = normalize(lightDirection + eye);
+          specular += lampLight * pow(max(0., dot(normal, halfVector)), 80.) * .22 * (1.0 - grout);
+        }
         vec3 color = tile * illumination;
-        color += vec3(.28, .45, .35) * caustic * sunlight * .6;
-        color += vec3(.08, .31, .38) * lampGlow * .7;
+        color += specular;
+        color += vec3(.44, .59, .43) * caustic * sunlight * (.14 + openingLight * incidence * .8);
         float distanceToEye = length(cameraPosition - vWorld);
-        vec3 absorption = exp(-distanceToEye * vec3(.038, .014, .009));
+        vec3 absorption = exp(-distanceToEye * vec3(.029, .0095, .006));
         color *= mix(vec3(1.0), absorption, uUnderwater);
         float haze = (1.0 - exp(-distanceToEye * (.010 + uDepth * .00022))) * uUnderwater;
         color = mix(color, uFog, haze);
@@ -133,12 +163,12 @@ export function createDiveWorld(scene: THREE.Scene): DiveWorld {
   floor.position.y = WATER_LEVEL - HEIGHT;
 
   const rimMaterial = new THREE.MeshStandardMaterial({
-    color: 0x557985, roughness: .48, metalness: .12,
+    color: 0xa9b4af, roughness: .44, metalness: .16,
   });
   const rim = add(new THREE.TorusGeometry(RADIUS - .12, .19, 8, 128), rimMaterial);
   rim.rotation.x = Math.PI / 2;
   rim.position.y = WATER_LEVEL + .36;
-  const deckMaterial = new THREE.MeshStandardMaterial({ color: 0x496369, roughness: .8 });
+  const deckMaterial = new THREE.MeshStandardMaterial({ color: 0xb3b7a8, roughness: .83 });
   const deck = add(new THREE.RingGeometry(RADIUS, 34, 128), deckMaterial);
   deck.rotation.x = -Math.PI / 2;
   deck.position.y = WATER_LEVEL + .32;
@@ -171,18 +201,151 @@ export function createDiveWorld(scene: THREE.Scene): DiveWorld {
     }
   }
 
-  const fixtureMaterial = new THREE.MeshBasicMaterial({ color: 0x183c48 });
-  const lightMaterial = new THREE.MeshBasicMaterial({ color: 0xb7f0ef });
-  for (let metres = 2.5; metres < 40; metres += 10) {
-    for (let index = 0; index < 3; index++) {
-      const angle = index * Math.PI * 2 / 3 - .28;
-      const fixture = add(new THREE.BoxGeometry(.72, .26, .16), fixtureMaterial);
-      fixture.position.set(Math.sin(angle) * (RADIUS - .16), WATER_LEVEL - metres / METRES_PER_UNIT, -Math.cos(angle) * (RADIUS - .16));
-      fixture.rotation.y = -angle;
-      const light = add(new THREE.PlaneGeometry(.52, .10), lightMaterial);
-      light.position.copy(fixture.position).add(new THREE.Vector3(-Math.sin(angle), 0, Math.cos(angle)).multiplyScalar(.1));
-      light.rotation.y = -angle;
+  // Each 28 cm fitting has a recessed body, stainless trim and a glass lens.
+  // Instancing keeps all 24 fittings to a few draw calls, including their beams.
+  const fixtureTransforms: THREE.Matrix4[] = [];
+  const beamTransforms: THREE.Matrix4[] = [];
+  const fixturePose = new THREE.Object3D();
+  fixturePose.rotation.order = "YXZ";
+  for (const metres of LAMP_DEPTHS) {
+    for (let index = 0; index < LAMPS_PER_LEVEL; index++) {
+      const angle = index * Math.PI * 2 / LAMPS_PER_LEVEL + Math.PI / 6;
+      fixturePose.position.set(Math.sin(angle) * (RADIUS - .17), WATER_LEVEL - metres / METRES_PER_UNIT, -Math.cos(angle) * (RADIUS - .17));
+      fixturePose.rotation.set(0, -angle, 0);
+      fixturePose.updateMatrix();
+      fixtureTransforms.push(fixturePose.matrix.clone());
+      fixturePose.rotation.x = .12;
+      fixturePose.updateMatrix();
+      beamTransforms.push(fixturePose.matrix.clone());
     }
+  }
+  const addInstanced = (
+    geometry: THREE.BufferGeometry,
+    material: THREE.Material,
+    transforms = fixtureTransforms,
+  ) => {
+    const mesh = new THREE.InstancedMesh(geometry, material, transforms.length);
+    instances.push(mesh);
+    transforms.forEach((matrix, index) => mesh.setMatrixAt(index, matrix));
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere();
+    group.add(mesh);
+    geometries.add(geometry);
+    materials.add(material);
+    return mesh;
+  };
+  const fixtureMaterial = new THREE.MeshStandardMaterial({ color: 0x172b30, roughness: .58, metalness: .3 });
+  const steelMaterial = new THREE.MeshStandardMaterial({ color: 0xaebbb6, roughness: .29, metalness: .82 });
+  const fixtureGeometry = new THREE.CylinderGeometry(.56, .56, .14, 32);
+  fixtureGeometry.rotateX(Math.PI / 2);
+  fixtureGeometry.translate(0, 0, -.02);
+  addInstanced(fixtureGeometry, fixtureMaterial);
+  const bezelGeometry = new THREE.TorusGeometry(.47, .068, 8, 40);
+  bezelGeometry.translate(0, 0, .09);
+  addInstanced(bezelGeometry, steelMaterial);
+  const lightVertex = `
+    varying vec2 vUv;
+    varying vec3 vWorld, vNormal;
+    void main() {
+      vUv = uv;
+      mat4 transform = modelMatrix * instanceMatrix;
+      vec4 world = transform * vec4(position, 1.0);
+      vWorld = world.xyz;
+      vNormal = normalize(mat3(transform) * normal);
+      gl_Position = projectionMatrix * viewMatrix * world;
+    }`;
+  const lensMaterial = new THREE.ShaderMaterial({
+    uniforms: shared,
+    vertexShader: lightVertex,
+    fragmentShader: `
+      uniform float uUnderwater, uBlueprint, uDepth;
+      uniform vec3 uFog;
+      varying vec2 vUv;
+      varying vec3 vWorld, vNormal;
+      void main() {
+        float radius = length(vUv - .5) * 2.0;
+        float glassEdge = smoothstep(.79, .98, radius);
+        vec3 color = mix(vec3(3.6, 3.0, 2.15), vec3(.45, .49, .44), glassEdge);
+        color *= .94 + .06 * cos(radius * 76.0);
+        float facing = max(0., dot(vNormal, normalize(cameraPosition - vWorld)));
+        color *= .6 + .4 * facing;
+        float eyeDistance = distance(cameraPosition, vWorld);
+        color *= exp(-eyeDistance * vec3(.029, .0095, .006) * uUnderwater);
+        float haze = (1.0 - exp(-eyeDistance * (.010 + uDepth * .00022))) * uUnderwater;
+        color = mix(color, uFog, haze);
+        color = mix(color, vec3(.05, .35, .40), uBlueprint);
+        gl_FragColor = vec4(color, 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
+  });
+  const lensGeometry = new THREE.CircleGeometry(.416, 32);
+  lensGeometry.translate(0, 0, .112);
+  addInstanced(lensGeometry, lensMaterial);
+  const screwTransforms: THREE.Matrix4[] = [];
+  for (const matrix of fixtureTransforms) {
+    for (let index = 0; index < 4; index++) {
+      const angle = index * Math.PI / 2 + Math.PI / 4;
+      const offset = new THREE.Matrix4().makeTranslation(Math.cos(angle) * .48, Math.sin(angle) * .48, .157);
+      screwTransforms.push(matrix.clone().multiply(offset));
+    }
+  }
+  addInstanced(new THREE.CircleGeometry(.026, 8), fixtureMaterial, screwTransforms);
+  const glowMaterial = new THREE.ShaderMaterial({
+    uniforms: shared,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    vertexShader: lightVertex,
+    fragmentShader: `
+      uniform float uUnderwater, uBlueprint;
+      varying vec2 vUv;
+      varying vec3 vWorld, vNormal;
+      void main() {
+        float radius = length(vUv - .5) * 2.0;
+        float glow = exp(-radius * radius * 7.5) * (1.0 - smoothstep(.5, 1., radius));
+        float eyeDistance = distance(cameraPosition, vWorld);
+        float facing = max(0., dot(vNormal, normalize(cameraPosition - vWorld)));
+        vec3 color = vec3(1., .89, .66) * exp(-eyeDistance * vec3(.029, .0095, .006));
+        gl_FragColor = vec4(color, glow * .38 * sqrt(facing) * uUnderwater * (1.0 - uBlueprint));
+      }`,
+  });
+  const glowGeometry = new THREE.PlaneGeometry(3.4, 3.4);
+  glowGeometry.translate(0, 0, .18);
+  addInstanced(glowGeometry, glowMaterial);
+  const beamMaterial = new THREE.ShaderMaterial({
+    uniforms: shared,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    blending: THREE.AdditiveBlending,
+    vertexShader: lightVertex,
+    fragmentShader: `
+      uniform float uUnderwater, uBlueprint;
+      varying vec2 vUv;
+      varying vec3 vWorld, vNormal;
+      void main() {
+        vec3 eye = normalize(cameraPosition - vWorld);
+        float edge = pow(abs(dot(vNormal, eye)), .8);
+        float density = pow(vUv.y, 2.2) * (1.0 - smoothstep(.88, 1., vUv.y));
+        float eyeDistance = distance(cameraPosition, vWorld);
+        float nearFade = smoothstep(.3, 2., eyeDistance);
+        vec3 tint = vec3(.78, .88, .74) * exp(-eyeDistance * vec3(.025, .009, .005));
+        gl_FragColor = vec4(tint, edge * density * nearFade * .095 * uUnderwater * (1.0 - uBlueprint));
+      }`,
+  });
+  const beamGeometry = new THREE.ConeGeometry(3.8, 15, 24, 1, true);
+  beamGeometry.rotateX(-Math.PI / 2);
+  beamGeometry.translate(0, 0, 7.8);
+  addInstanced(beamGeometry, beamMaterial, beamTransforms);
+
+  // Narrow construction joints and rounded ledges give the shaft scale without
+  // introducing obstacles or a decorative science-fiction framework.
+  const jointMaterial = new THREE.MeshStandardMaterial({ color: 0x456266, roughness: .61, metalness: .08 });
+  for (const metres of [10, 20, 30, 40]) {
+    const joint = add(new THREE.TorusGeometry(RADIUS - .09, .12, 8, 128), jointMaterial);
+    joint.rotation.x = Math.PI / 2;
+    joint.position.y = WATER_LEVEL - metres / METRES_PER_UNIT;
   }
 
   const ropeMaterial = new THREE.MeshBasicMaterial({ color: 0x618589 });
@@ -224,22 +387,26 @@ export function createDiveWorld(scene: THREE.Scene): DiveWorld {
         gl_Position = projectionMatrix * viewMatrix * world;
       }`,
     fragmentShader: `
-      uniform float uTime, uBlueprint;
+      uniform float uTime, uBlueprint, uDepth;
+      uniform vec3 uFog;
       varying vec3 vWorld, vNormal;
+      ${SKY_GLSL}
       void main() {
         if (length(vWorld.xz) > ${RADIUS.toFixed(1)}) discard;
         vec3 view = normalize(cameraPosition - vWorld);
         vec3 normal = normalize(vNormal + vec3(sin(vWorld.z * 6.0 + uTime) * .028, 0., cos(vWorld.x * 7.2 - uTime) * .03));
         float facing = abs(dot(view, normal));
-        float window = smoothstep(.60, .76, facing);
-        vec2 refracted = vWorld.xz + normal.xz * 3.0;
-        float panes = smoothstep(.12, .2, abs(sin(refracted.x * .26)))
-          * smoothstep(.1, .17, abs(sin(refracted.y * .22)));
-        vec3 daylight = mix(vec3(.11, .30, .35), vec3(.48, .77, .78), panes);
-        vec3 color = mix(vec3(.035, .19, .25), daylight, window);
-        color += pow(max(0.0, sin(refracted.x * 2.4) * cos(refracted.y * 2.1)), 12.0) * .12;
+        // Total internal reflection outside the 48.6-degree Snell window.
+        // Refraction samples exactly the same outdoor sky and sun as above.
+        vec3 refracted = refract(-view, -normal, 1.333);
+        float window = smoothstep(.65, .69, facing);
+        vec3 daylight = daylightSky(normalize(refracted + vec3(0., .0001, 0.)));
+        float fresnel = .0204 + .9796 * pow(1.0 - facing, 5.0);
+        vec3 reflectedWater = mix(vec3(.025, .15, .18), vec3(.10, .32, .32), facing);
+        vec3 color = mix(reflectedWater, daylight, window * (1.0 - fresnel));
         float distanceToEye = length(cameraPosition - vWorld);
-        color *= exp(-distanceToEye * vec3(.034, .015, .009));
+        color *= exp(-distanceToEye * vec3(.029, .0095, .006));
+        color = mix(color, uFog, 1.0 - exp(-distanceToEye * (.009 + uDepth * .0002)));
         color = mix(color, vec3(.04, .16, .20), uBlueprint);
         gl_FragColor = vec4(color, 1.0);
         #include <tonemapping_fragment>
@@ -273,16 +440,21 @@ export function createDiveWorld(scene: THREE.Scene): DiveWorld {
       void main() {
         float stripe = pow(max(0., 1.0 - abs(vUv.x * 2.0 - 1.0)), 3.0);
         float falloff = pow(vUv.y, 1.8) * (1.0 - smoothstep(.92, 1.0, vUv.y));
-        float shimmer = .8 + .2 * sin(uTime * .4 + vUv.y * 12.0);
+        float shimmer = .88 + .12 * sin(uTime * .4 + vUv.y * 12.0);
         float nearFade = smoothstep(.4, 3.0, distance(cameraPosition, vWorld));
-        gl_FragColor = vec4(.24, .68, .76, stripe * falloff * shimmer * nearFade * .055 * uUnderwater * (1.0 - uBlueprint));
+        float inside = 1.0 - smoothstep(${(RADIUS - .8).toFixed(2)}, ${RADIUS.toFixed(2)}, length(vWorld.xz));
+        gl_FragColor = vec4(.70, .84, .70, stripe * falloff * shimmer * nearFade * inside * .048 * uUnderwater * (1.0 - uBlueprint));
       }`,
   });
+  const sunDirection = shared.uSunDirection.value;
+  const refractedSun = new THREE.Vector3(-sunDirection.x / 1.333, 0, -sunDirection.z / 1.333);
+  refractedSun.y = -Math.sqrt(1 - refractedSun.lengthSq());
   for (let index = 0; index < 5; index++) {
-    const ray = add(new THREE.PlaneGeometry(2.4 + index * .6, 90), rayMaterial);
-    ray.position.set(-12 + index * 5, WATER_LEVEL - 43, -8 + index * 1.8);
-    ray.rotation.z = -.12;
-    ray.rotation.y = .35;
+    const length = 62;
+    const ray = add(new THREE.PlaneGeometry(2.2 + index * .45, length), rayMaterial);
+    ray.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), refractedSun);
+    ray.position.set(-11 + index * 4.8, WATER_LEVEL, -14 + index * .5);
+    ray.position.addScaledVector(refractedSun, length / 2);
   }
 
   const particleCount = 480;
@@ -344,6 +516,7 @@ export function createDiveWorld(scene: THREE.Scene): DiveWorld {
       });
     },
     dispose() {
+      instances.forEach((mesh) => mesh.dispose());
       scene.remove(group);
       geometries.forEach((geometry) => geometry.dispose());
       materials.forEach((material) => material.dispose());

@@ -3,42 +3,30 @@ import type { OceanController } from "./ocean";
 import { cameraAtDive, depthAtScroll, MAX_DIVE_DEPTH } from "./dive";
 
 const Arrow = ({ down = false }: { down?: boolean }) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    aria-hidden="true"
-    style={down ? { transform: "rotate(90deg)" } : undefined}
-  >
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true" style={down ? { transform: "rotate(90deg)" } : undefined}>
     <path d="M4 12h15M13 5l7 7-7 7" />
   </svg>
 );
-
 const subscribeMotion = (notify: () => void) => {
   const media = window.matchMedia("(prefers-reduced-motion: reduce)");
   media.addEventListener("change", notify);
   return () => media.removeEventListener("change", notify);
 };
-const readMotion = () =>
-  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const readMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 function App() {
   const journeyRef = useRef<HTMLElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
-  const [depth, setDepth] = useState(0);
-  const [atSurface, setAtSurface] = useState(true);
   const sceneRef = useRef<HTMLDivElement>(null);
   const interactionRef = useRef<HTMLDivElement>(null);
   const controller = useRef<OceanController | null>(null);
+  const [depth, setDepth] = useState(0);
+  const [atSurface, setAtSurface] = useState(true);
+  const [currentChapter, setCurrentChapter] = useState("01 / OBERFLÄCHE");
   const [blueprint, setBlueprint] = useState(false);
   const [paused, setPaused] = useState<boolean | null>(null);
   const [sceneReady, setSceneReady] = useState(false);
-  const reducedMotion = useSyncExternalStore(
-    subscribeMotion,
-    readMotion,
-    () => true,
-  );
+  const reducedMotion = useSyncExternalStore(subscribeMotion, readMotion, () => true);
   const motionPaused = paused ?? reducedMotion;
 
   useEffect(() => {
@@ -46,30 +34,23 @@ function App() {
     const element = sceneRef.current;
     const interaction = interactionRef.current;
     if (!element || !interaction) return;
-    import("./ocean")
-      .then(({ createOcean }) => {
-        if (disposed) return;
-        try {
-          controller.current = createOcean(element, interaction, () => setSceneReady(false));
-          setSceneReady(true);
-        } catch {
-          // The illustration and all content remain available without WebGL.
-        }
-      })
-      .catch(() => {});
+    import("./ocean").then(({ createOcean }) => {
+      if (disposed) return;
+      try {
+        controller.current = createOcean(element, interaction, () => setSceneReady(false));
+        setSceneReady(true);
+      } catch {
+        // The CSS water world and all native document content remain available.
+      }
+    }).catch(() => {});
     return () => {
       disposed = true;
       controller.current?.dispose();
       controller.current = null;
     };
   }, []);
-
-  useEffect(() => {
-    controller.current?.setBlueprint(blueprint);
-  }, [blueprint, sceneReady]);
-  useEffect(() => {
-    controller.current?.setPaused(paused);
-  }, [paused, sceneReady]);
+  useEffect(() => { controller.current?.setBlueprint(blueprint); }, [blueprint, sceneReady]);
+  useEffect(() => { controller.current?.setPaused(paused); }, [paused, sceneReady]);
 
   useEffect(() => {
     const journey = journeyRef.current;
@@ -82,14 +63,21 @@ function App() {
       const next = depthAtScroll(window.scrollY, top, journey.offsetHeight, viewport.offsetHeight);
       const immersion = cameraAtDive(next, viewport.clientWidth < 600).depth;
       controller.current?.setDive(next);
-      viewport.style.setProperty("--surface-visibility", String(Math.max(0, 1 - next / .65)));
-      viewport.style.setProperty("--dive-progress", String(immersion / MAX_DIVE_DEPTH));
+      journey.style.setProperty("--surface-visibility", String(Math.max(0, 1 - next / .65)));
+      journey.style.setProperty("--dive-progress", String(immersion / MAX_DIVE_DEPTH));
       setDepth(Math.round(immersion * 10) / 10);
       setAtSurface(next < .65);
+      const chapters = [
+        ["contact", "05 / EIN HALLO"], ["tech", "04 / DIE NEUGIER"],
+        ["elements", "03 / DER ANTRIEB"], ["about", "02 / DER MENSCH"],
+      ];
+      const active = chapters.find(([id]) => {
+        const section = document.getElementById(id);
+        return section && section.getBoundingClientRect().top <= viewport.clientHeight * .55;
+      });
+      setCurrentChapter(active?.[1] ?? (immersion > 0 ? "01 / ABTAUCHEN" : "01 / OBERFLÄCHE"));
     };
-    const schedule = () => {
-      if (!frame) frame = requestAnimationFrame(update);
-    };
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(update); };
     const observer = new ResizeObserver(schedule);
     observer.observe(journey);
     observer.observe(viewport);
@@ -104,369 +92,118 @@ function App() {
     };
   }, [sceneReady]);
 
-  const underwater = depth > 0;
-  const atBottom = depth >= 38;
 
   return (
-    <div className={`site ${blueprint ? "is-blueprint" : ""}`}>
-      <a className="skip-link" href="#about">
-        Zum Inhalt
-      </a>
-      <header className="site-header">
-        <a
-          className="wordmark"
-          href="#top"
-          aria-label="Stefan Dukic – Startseite"
-        >
-          <span className="brand-icon" aria-hidden="true">
-            S<span>D</span>
-          </span>
-          <span>
-            STEFAN
-            <br />
-            DUKIC<span className="brand-dot">.</span>
-          </span>
-        </a>
-        <nav aria-label="Hauptnavigation">
-          <a href="#about">Der Mensch</a>
-          <a href="#elements">Die Elemente</a>
-          <a className="nav-contact" href="#contact">
-            Kontakt <span>↗</span>
+    <div className={`site ${blueprint ? "is-blueprint" : ""} ${depth > 0 ? "is-underwater" : ""}`}>
+      <a className="skip-link" href="#about">Direkt zum Inhalt</a>
+      <div className="site-chrome">
+        <header className="site-header">
+          <a className="wordmark" href="#top" aria-label="Stefan Dukic – zurück zur Oberfläche">
+            <span className="brand-symbol" aria-hidden="true">s<span>d</span>.</span>
+            <span>STEFAN DUKIC<small>IN MEINEM ELEMENT</small></span>
           </a>
-        </nav>
-      </header>
-
-      <main>
-        <section className="dive-journey" id="top" ref={journeyRef} aria-labelledby="hero-title">
-          <div id="dive-start" className="dive-anchor" aria-hidden="true" />
-          <div className={`hero dive-viewport ${underwater ? "is-submerged" : ""} ${!sceneReady ? "is-fallback" : ""}`} ref={viewportRef}>
-            <div className="hero-scene" ref={sceneRef} aria-hidden="true" />
-            <div className="buoy-interaction" ref={interactionRef} />
-            {!sceneReady && (
-              <div className="fallback-art" aria-hidden="true">
-                <div />
-              </div>
-            )}
-            {!sceneReady && (
-              <div className="dive-fallback" aria-hidden="true">
-                <div className="fallback-shaft" />
-                <div className="fallback-daylight" />
-              </div>
-            )}
-            <div className="underwater-vignette" aria-hidden="true" />
-            <div className="hero-shade" aria-hidden="true" />
-            <div className="hero-cross cross-one" aria-hidden="true">
-              +
-            </div>
-            <div className="hero-cross cross-two" aria-hidden="true">
-              +
-            </div>
-            <div className="hero-content" inert={!atSurface}>
-              <p className="eyebrow">
-                <span className="status-dot" /> WASSER. WERKSTATT. WEITBLICK.
-              </p>
-              <h1 id="hero-title">
-                IN MEINEM
-                <br />
-                <span>ELEMENT.</span>
-              </h1>
-              <p className="hero-intro">
-                Bademeister von Beruf.
-                <br />
-                Macher aus Überzeugung.
-              </p>
-              <a className="primary-link" href="#dive-start">
-                Tauch ein <Arrow down />
-              </a>
-            </div>
-            <div className="scene-label" aria-hidden="true">
-              <span className="label-line" />
-              <span>
-                01 / WASSER TRIFFT TECHNIK
-                <br />
-                <b>{sceneReady ? "GREIF DEN RING. SPÜR DIE WELLEN." : "DER EIGENE KURS."}</b>
-              </span>
-            </div>
-            <div className="depth-display" role="meter" aria-label="Virtuelle Tauchtiefe in Metern" aria-valuemin={0} aria-valuemax={MAX_DIVE_DEPTH} aria-valuenow={depth}>
-              <span className="depth-caption">{underwater ? "UNTER DER OBERFLÄCHE" : "AN DER OBERFLÄCHE"}</span>
-              <span className="depth-reading"><strong>{depth.toFixed(1).replace(".", ",")}</strong><span>m</span></span>
-              <span className="depth-limit">TIEFE / 40 METER</span>
-            </div>
-            <div className="depth-ruler" aria-hidden="true">
-              {[0, 10, 20, 30, 40].map(mark => <span key={mark}>{String(mark).padStart(2, "0")}</span>)}
-              <i className="depth-marker" />
-            </div>
-            <div className={`dive-caption ${depth >= 4 && depth < 9 ? "is-visible" : ""}`} aria-hidden={!(depth >= 4 && depth < 9)}>
-              <p className="eyebrow">01 / ABTAUCHEN</p>
-              <p>Die Welt wird leiser.</p>
-            </div>
-            <div className={`dive-caption ${depth >= 18 && depth < 24 ? "is-visible" : ""}`} aria-hidden={!(depth >= 18 && depth < 24)}>
-              <p className="eyebrow">02 / WEITERDENKEN</p>
-              <p>Neugier kennt keinen Grund.</p>
-            </div>
-            <div className={`dive-caption dive-arrival ${atBottom ? "is-visible" : ""}`} inert={!atBottom}>
-              <p className="eyebrow">03 / ANGEKOMMEN</p>
-              <p>Und dahinter?<br /><span>Einfach Stefan.</span></p>
-              <a href="#about">Lern mich kennen <Arrow down /></a>
-            </div>
-            <div className="hero-bottom">
-              <span className="location">
-                <span>◎</span> {underwater ? "IN MEINEM ELEMENT" : "ZÜRICH, SCHWEIZ"}
-              </span>
-              <div
-                className="scene-controls"
-                role="group"
-                aria-label="Darstellung der Wasserwelt"
-              >
-                <button
-                  type="button"
-                  className={!blueprint ? "selected" : ""}
-                  aria-pressed={!blueprint}
-                  onClick={() => setBlueprint(false)}
-                >
-                  Wasser
-                </button>
-                <button
-                  type="button"
-                  className={blueprint ? "selected" : ""}
-                  aria-pressed={blueprint}
-                  onClick={() => setBlueprint(true)}
-                >
-                  Bauplan
-                </button>
-                {sceneReady && (
-                  <button
-                    className="motion-button"
-                    type="button"
-                    onClick={() => setPaused(!motionPaused)}
-                    aria-label={
-                      motionPaused ? "Animation starten" : "Animation pausieren"
-                    }
-                  >
-                    {motionPaused ? "▶" : "Ⅱ"}
-                  </button>
-                )}
-              </div>
-              <a className="scroll-cue" href={underwater ? "#about" : "#dive-start"}>
-                {underwater ? "ZUM MENSCHEN" : "SCROLLEN & ABTAUCHEN"} <Arrow down />
-              </a>
-            </div>
+          <nav aria-label="Hauptnavigation">
+            <a href="#about">Der Mensch</a>
+            <a href="#elements">Der Antrieb</a>
+            <a className="nav-contact" href="#contact">Sag Hallo <span>↗</span></a>
+          </nav>
+        </header>
+        <aside aria-label="Tauchgang und Darstellung">
+        <div className="depth-instrument">
+          <div className="depth-display" role="meter" aria-label="Virtuelle Tauchtiefe in Metern" aria-valuemin={0} aria-valuemax={MAX_DIVE_DEPTH} aria-valuenow={depth}>
+            <span className="micro-label">{depth > 0 ? "UNTER WASSER" : "OBERFLÄCHE"}</span>
+            <span className="depth-reading"><strong>{depth.toFixed(1).replace(".", ",")}</strong><span>m</span></span>
           </div>
-        </section>
-
-        <div className="element-strip" aria-hidden="true">
-          <span>WASSER</span>
-          <i>✳</i>
-          <span>HANDWERK</span>
-          <i>✳</i>
-          <span>TECHNIK</span>
-          <i>✳</i>
-          <span>NEUGIER</span>
-          <i>✳</i>
+          <div className="depth-ruler" aria-hidden="true">
+            {[0, 10, 20, 30, 40].map(mark => <span key={mark}>{String(mark).padStart(2, "0")}</span>)}
+            <i className="depth-marker" style={{ top: `${depth / MAX_DIVE_DEPTH * 100}%` }} />
+          </div>
+          <span className="depth-end" aria-hidden="true">40 M</span>
         </div>
-
-        <section
-          className="about section-shell"
-          id="about"
-          aria-labelledby="about-title"
-        >
-          <div className="section-index">
-            <span>01 — DER MENSCH</span>
-            <span>MEHR ALS EINE ROLLE</span>
+        <div className="journey-controls">
+          <span className="journey-position" aria-hidden="true"><i />{currentChapter}</span>
+          <div className="scene-controls" role="group" aria-label="Darstellung der Wasserwelt">
+            <button type="button" className={!blueprint ? "selected" : ""} aria-pressed={!blueprint} onClick={() => setBlueprint(false)}>Wasser</button>
+            <button type="button" className={blueprint ? "selected" : ""} aria-pressed={blueprint} onClick={() => setBlueprint(true)}>Bauplan</button>
+            {sceneReady && <button className="motion-button" type="button" onClick={() => setPaused(!motionPaused)} aria-label={motionPaused ? "Animation starten" : "Animation pausieren"}>{motionPaused ? "▶" : "Ⅱ"}</button>}
           </div>
-          <div className="about-grid">
-            <div className="portrait-block">
-              <div className="portrait-frame">
-                <img
-                  src="/images/stefan-greece.webp"
-                  alt="Stefan in einem Restaurant in Griechenland"
-                  width="1108"
-                  height="1108"
-                  loading="lazy"
-                />
-                <span className="image-corner top-left" />
-                <span className="image-corner bottom-right" />
-                <span className="photo-label">EINFACH STEFAN.</span>
-              </div>
-              <div className="portrait-caption">
-                <span>STEFAN DUKIC</span>
-                <span>IN SEINEM ELEMENT ↗</span>
+        </div>
+        </aside>
+      </div>
+
+      <main className="dive-journey" id="top" ref={journeyRef}>
+        <div className={`dive-viewport ${sceneReady ? "" : "is-fallback"}`} ref={viewportRef}>
+          <div className="hero-scene" ref={sceneRef} aria-hidden="true" />
+          <div className="buoy-interaction" ref={interactionRef} />
+          {!sceneReady && <div className="fallback-world" aria-hidden="true"><div className="fallback-sky" /><div className="fallback-sea" /><div className="fallback-ring" /><div className="fallback-shaft" /></div>}
+          <div className="scene-atmosphere" aria-hidden="true" />
+        </div>
+        <div className="journey-content">
+          <section className="surface-section" aria-labelledby="hero-title">
+            <div className="surface-content" inert={!atSurface}>
+              <p className="eyebrow"><span className="fine-line" />WASSER. WERKSTATT. WEITBLICK.</p>
+              <h1 id="hero-title">In meinem<br /><em>Element.</em></h1>
+              <div className="hero-detail">
+                <p>Bademeister von Beruf.<br />Macher aus Überzeugung.</p>
+                <a className="dive-link" href="#dive-start"><span>Tauch ein</span><span className="arrow-circle"><Arrow down /></span></a>
               </div>
             </div>
-            <div className="about-copy">
-              <p className="eyebrow">HEY, ICH BIN STEFAN.</p>
-              <h2 id="about-title">
-                Wasser im Blut.
-                <br />
-                <span>Technik im Kopf.</span>
-              </h2>
-              <p>
-                Heute bin ich Bademeister. Am Wasser fühle ich mich zuhause.
-                Hier zählen ein wacher Blick, ein ruhiger Kopf und die
-                Bereitschaft, anzupacken.
-              </p>
-              <p>
-                Meine Neugier hört am Beckenrand nicht auf. Ich mag Technik,
-                tüftle an eigenen Ideen und will verstehen, wie Dinge
-                funktionieren. Vom ersten Gedanken bis zu dem Moment, in dem
-                alles zusammenpasst.
-              </p>
-              <div className="signature">
-                Stefan<span>↗</span>
+            <p className="surface-location"><span>47° N / 8° E</span>ZÜRICH, SCHWEIZ</p>
+            <p className="ring-hint">Einfach den Ring greifen.<span>Den Rest machen die Wellen.</span></p>
+          </section>
+          <div id="dive-start" className="dive-anchor" aria-hidden="true" />
+          <div className="open-water">
+            <p><span className="eyebrow">UNTER DER OBERFLÄCHE</span>Die Welt wird <em>leiser.</em></p>
+            <span className="descent-line" aria-hidden="true" />
+          </div>
+
+          <section className="chapter about-chapter" id="about" aria-labelledby="about-title">
+            <article className="chapter-card about-card">
+              <div className="chapter-topline"><span>01 / DER MENSCH</span><span className="small-star" aria-hidden="true">✳</span></div>
+              <div className="profile-heading">
+                <h2 id="about-title">Wasser im Blut.<br /><em>Technik im Kopf.</em></h2>
+                <div className="portrait"><img src="/images/stefan-greece.webp" alt="Stefan Dukic" width="1108" height="1108" loading="lazy" /></div>
               </div>
+              <p>Hey, ich bin Stefan. Heute bin ich Bademeister. Am Wasser fühle ich mich zuhause. Hier zählen ein wacher Blick, ein ruhiger Kopf und die Bereitschaft, anzupacken.</p>
+              <p>Meine Neugier hört am Beckenrand nicht auf. Ich mag Technik, tüftle an eigenen Ideen und will verstehen, wie Dinge funktionieren.</p>
+              <div className="card-signoff"><span>Stefan Dukic</span><span>ZÜRICH ↗</span></div>
+            </article>
+          </section>
+          <div className="water-space" aria-hidden="true" />
+          <section className="chapter craft-chapter" id="elements" aria-labelledby="craft-title">
+            <article className="chapter-card">
+              <div className="chapter-topline"><span>02 / DER ANTRIEB</span><span className="small-star" aria-hidden="true">✳</span></div>
+              <h2 id="craft-title">Ärmel hoch.<br /><em>Etwas bewegen.</em></h2>
+              <p>Ich mag Dinge, die man anfassen kann. Ausprobieren, reparieren, verbessern. Und am Ende sehen, was man geschafft hat.</p>
+              <div className="craft-values"><span>AUSPROBIEREN<i>01</i></span><span>ANPACKEN<i>02</i></span><span>WEITERKOMMEN<i>03</i></span></div>
+              <p className="card-footnote">Zwischen Wasser und Werkbank.</p>
+            </article>
+          </section>
+          <div className="water-space" aria-hidden="true" />
+          <section className="chapter tech-chapter" id="tech" aria-labelledby="tech-title">
+            <article className="chapter-card">
+              <div className="chapter-topline"><span>03 / DIE NEUGIER</span><span className="small-star" aria-hidden="true">✳</span></div>
+              <h2 id="tech-title">Tiefer schauen.<br /><em>Weiterdenken.</em></h2>
+              <p>Früher war Software mein Beruf. Heute bleibt die Freude am Tüfteln: Systeme verstehen, Ideen verbinden und Neues bauen.</p>
+              <p>Vom ersten Gedanken bis zu dem Moment, in dem alles zusammenpasst.</p>
+              <div className="thought-line"><span aria-hidden="true">↳</span>Stillstand? Nicht mein Element.</div>
+            </article>
+          </section>
+          <section className="contact-chapter" aria-labelledby="contact-title">
+            <div className="contact-inner" id="contact">
+              <p className="eyebrow"><span className="fine-line" />NOCH LANGE NICHT AM ENDE.</p>
+              <a className="contact-link" href="mailto:codecraftingpro@gmail.com">
+                <h2 id="contact-title">Auf ein<br /><em>Hallo.</em></h2><span className="contact-arrow"><Arrow /></span>
+              </a>
+              <div className="contact-details">
+                <a href="mailto:codecraftingpro@gmail.com">codecraftingpro@gmail.com <span>↗</span></a>
+                <a href="https://www.linkedin.com/in/stefan-dukic-68682b20b/" target="_blank" rel="noreferrer">LinkedIn <span>↗</span></a>
+              </div>
+              <footer className="site-footer"><span>STEFAN DUKIC — IN MEINEM ELEMENT</span><a href="#top">ZURÜCK ZUR SONNE ↑</a></footer>
             </div>
-          </div>
-        </section>
-
-        <section
-          className="elements section-shell"
-          id="elements"
-          aria-labelledby="elements-title"
-        >
-          <div className="section-index">
-            <span>02 — DIE ELEMENTE</span>
-            <span>DREI SEITEN. EIN MENSCH.</span>
-          </div>
-          <div className="section-heading">
-            <h2 id="elements-title">
-              DAS TREIBT
-              <br />
-              <span>MICH AN.</span>
-            </h2>
-            <p>
-              Zwischen Wasser und Werkbank.
-              <br />
-              Mit beiden Füssen im Leben
-              <br />
-              und dem Kopf voller Ideen.
-            </p>
-          </div>
-          <div className="element-grid">
-            <article className="element-card water-card">
-              <div className="card-top">
-                <span>01 / WASSER</span>
-                <span>↗</span>
-              </div>
-              <div className="water-graphic" aria-hidden="true">
-                <i />
-                <i />
-                <i />
-                <i />
-                <i />
-              </div>
-              <div className="card-copy">
-                <h3>
-                  Ruhe bewahren.
-                  <br />
-                  Präsent sein.
-                </h3>
-                <p>
-                  Wasser ist mein Arbeitsplatz und mein Element. Verantwortung
-                  übernehmen. Menschen im Blick haben. Da sein, wenn es zählt.
-                </p>
-                <span className="card-tag">BADEMEISTER</span>
-              </div>
-            </article>
-            <article className="element-card craft-card">
-              <div className="card-top">
-                <span>02 / HANDWERK</span>
-                <span>↗</span>
-              </div>
-              <div className="craft-graphic" aria-hidden="true">
-                <div />
-                <div />
-                <div />
-                <i />
-              </div>
-              <div className="card-copy">
-                <h3>
-                  Ärmel hoch.
-                  <br />
-                  Etwas bewegen.
-                </h3>
-                <p>
-                  Ich mag Dinge, die man anfassen kann. Ausprobieren,
-                  reparieren, verbessern. Und am Ende sehen, was man geschafft
-                  hat.
-                </p>
-                <span className="card-tag">MACHERMENTALITÄT</span>
-              </div>
-            </article>
-            <article className="element-card tech-card">
-              <div className="card-top">
-                <span>03 / TECHNIK</span>
-                <span>↗</span>
-              </div>
-              <div className="tech-graphic" aria-hidden="true">
-                <div />
-                <div />
-                <div />
-                <span>SD</span>
-              </div>
-              <div className="card-copy">
-                <h3>
-                  Neugierig bleiben.
-                  <br />
-                  Weiterdenken.
-                </h3>
-                <p>
-                  Früher war Software mein Beruf. Heute bleibt die Freude am
-                  Tüfteln: Systeme verstehen, Ideen verbinden und Neues bauen.
-                </p>
-                <span className="card-tag">ENTDECKERGEIST</span>
-              </div>
-            </article>
-          </div>
-        </section>
-
-        <section className="manifesto" aria-label="Mein Antrieb">
-          <p className="eyebrow">IM WASSER. IM KOPF. IM LEBEN.</p>
-          <p className="manifesto-text">
-            STILLSTAND?
-            <br />
-            <span>NICHT MEIN ELEMENT.</span>
-          </p>
-          <div className="manifesto-ripple" aria-hidden="true" />
-        </section>
-        <section
-          className="contact section-shell"
-          id="contact"
-          aria-labelledby="contact-title"
-        >
-          <div className="section-index">
-            <span>03 — KONTAKT</span>
-            <span>VON MENSCH ZU MENSCH</span>
-          </div>
-          <p className="eyebrow">EINE IDEE? EINFACH HALLO SAGEN?</p>
-          <a className="contact-link" href="mailto:codecraftingpro@gmail.com">
-            <h2 id="contact-title">
-              LASS UNS
-              <br />
-              <span>REDEN.</span>
-            </h2>
-            <Arrow />
-          </a>
-          <div className="contact-bottom">
-            <a href="mailto:codecraftingpro@gmail.com">
-              codecraftingpro@gmail.com ↗
-            </a>
-            <a
-              href="https://www.linkedin.com/in/stefan-dukic-68682b20b/"
-              target="_blank"
-              rel="noreferrer"
-            >
-              LinkedIn ↗
-            </a>
-          </div>
-        </section>
+          </section>
+        </div>
       </main>
-      <footer className="site-footer">
-        <a className="footer-name" href="#top">
-          STEFAN DUKIC<span>↗</span>
-        </a>
-        <span>WASSER IM BLUT. TECHNIK IM KOPF.</span>
-        <a href="#top">ZURÜCK NACH OBEN ↑</a>
-      </footer>
     </div>
   );
 }

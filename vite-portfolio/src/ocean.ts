@@ -1,9 +1,10 @@
 import * as THREE from "three";
-import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { Reflector } from "three/addons/objects/Reflector.js";
 import { BuoyPhysics } from "./buoyPhysics";
 import { createDiveWorld } from "./diveWorld";
 import { cameraAtDive } from "./dive";
+import { createSky } from "./sky";
+import { SKY_GLSL, SUN_DIRECTION } from "./lighting";
 import { METRES_PER_UNIT, WATER_LEVEL, WAVE_GLSL, WAVE_GLSL_CALLS, sampleWater } from "./waves";
 
 export interface OceanController {
@@ -30,17 +31,13 @@ export function createOcean(
   container.appendChild(renderer.domElement);
   const scene = new THREE.Scene();
   scene.fog = new THREE.FogExp2(0x06232d, 0.028);
-  const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 300);
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  const room = new RoomEnvironment();
-  const env = pmrem.fromScene(room, 0.04);
-  scene.environment = env.texture;
-  room.dispose();
-  pmrem.dispose();
+  const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 300);
+  const sky = createSky(renderer, scene);
+  const sunDirection = new THREE.Vector3(...SUN_DIRECTION).normalize();
 
-  scene.add(new THREE.HemisphereLight(0x8fe8ff, 0x062632, 1.8));
-  const key = new THREE.DirectionalLight(0xd5edee, 3.2);
-  key.position.set(-4, 7, 5);
+  scene.add(new THREE.HemisphereLight(0xb9e1ec, 0x062632, 1.5));
+  const key = new THREE.DirectionalLight(0xffe0ac, 3.2);
+  key.position.copy(sunDirection).multiplyScalar(80);
   scene.add(key);
   const rim = new THREE.PointLight(0x39eddb, 65, 16);
   rim.position.set(4, 2, 2);
@@ -214,6 +211,7 @@ export function createOcean(
         textureMatrix: { value: new THREE.Matrix4() },
         uTime: { value: 0 },
         uBlueprint: { value: 0 },
+        uSunDirection: { value: sunDirection },
       },
       vertexShader: `
         uniform float uTime;
@@ -250,6 +248,8 @@ export function createOcean(
         varying vec4 vReflection;
         varying float vCrest;
 
+        ${SKY_GLSL}
+
         vec2 ripple(vec2 p, vec2 direction, float frequency,
           float amplitude, float speed, float footprint) {
           vec2 d = normalize(direction);
@@ -258,18 +258,6 @@ export function createOcean(
           float filterWidth = frequency * footprint;
           float filtered = exp(-filterWidth * filterWidth * 0.6);
           return d * cos(phase) * amplitude * frequency * filtered;
-        }
-
-        vec3 sky(vec3 direction) {
-          float up = clamp(direction.y, 0.0, 1.0);
-          vec3 horizon = vec3(0.19, 0.37, 0.42);
-          vec3 zenith = vec3(0.017, 0.07, 0.115);
-          vec3 result = mix(horizon, zenith, pow(up, 0.48));
-          float clouds = sin(direction.x * 8.0 + direction.z * 5.0)
-            * sin(direction.z * 14.0 - direction.x * 3.0);
-          result += vec3(0.055, 0.065, 0.068) * smoothstep(0.12, 0.65, clouds)
-            * smoothstep(0.03, 0.3, up);
-          return result;
         }
 
         void main() {
@@ -285,7 +273,7 @@ export function createOcean(
           float facing = max(dot(n, viewDirection), 0.0);
           float fresnel = 0.0204 + 0.9796 * pow(1.0 - facing, 5.0);
           vec3 reflectedDirection = reflect(-viewDirection, n);
-          vec3 reflectedSky = sky(reflectedDirection);
+          vec3 reflectedSky = daylightSky(reflectedDirection);
 
           vec2 reflectionUV = vReflection.xy / vReflection.w;
           reflectionUV += n.xz * 0.035 / max(1.0, distanceToEye * 0.12);
@@ -294,16 +282,15 @@ export function createOcean(
 
           // More light transmits through the wave shoulders than the troughs.
           float shoulder = smoothstep(-0.25, 0.52, vCrest);
-          vec3 deepWater = vec3(0.004, 0.033, 0.047);
-          vec3 shallowLight = vec3(0.012, 0.105, 0.12);
+          vec3 deepWater = vec3(0.008, 0.075, 0.10);
+          vec3 shallowLight = vec3(0.025, 0.19, 0.22);
           vec3 waterColor = mix(deepWater, shallowLight, shoulder * 0.65);
           vec3 color = mix(waterColor, reflection, fresnel);
-          vec3 sunDirection = normalize(vec3(-0.42, 0.48, -0.77));
-          vec3 halfDirection = normalize(sunDirection + viewDirection);
+          vec3 halfDirection = normalize(uSunDirection + viewDirection);
           float highlight = pow(max(dot(n, halfDirection), 0.0), 180.0);
           float sheen = pow(max(dot(n, halfDirection), 0.0), 24.0);
-          color += vec3(0.65, 0.84, 0.86) * highlight * 0.85;
-          color += vec3(0.045, 0.105, 0.12) * sheen;
+          color += vec3(1.0, .79, .45) * highlight * 1.6;
+          color += vec3(.14, .15, .12) * sheen;
 
           // Sparse whitecaps belong only on the highest, steepest crests.
           float breakup = sin(vSurface.x * 15.0 + sin(vSurface.y * 9.0))
@@ -313,7 +300,7 @@ export function createOcean(
             * smoothstep(0.15, 0.65, breakup);
           color = mix(color, vec3(0.34, 0.51, 0.52), foam * 0.55);
           float fog = 1.0 - exp(-distanceToEye * distanceToEye * 0.00018);
-          color = mix(color, vec3(0.023, 0.082, 0.104), fog);
+          color = mix(color, daylightSky(vec3(0.0, .01, -1.0)) * .7, fog * .5);
 
           vec2 gridPosition = vSurface * 1.5;
           vec2 grid = abs(fract(gridPosition - 0.5) - 0.5)
@@ -332,6 +319,50 @@ export function createOcean(
   scene.add(water);
   const waterMaterial = water.material as THREE.ShaderMaterial;
   const uniforms = waterMaterial.uniforms;
+  // The detailed Gerstner patch sits inside the pool. Beyond the deck this
+  // quiet, low-cost water ring carries the light all the way to the horizon.
+  const distantWaterMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: uniforms.uTime,
+      uBlueprint: uniforms.uBlueprint,
+      uSunDirection: { value: sunDirection },
+    },
+    vertexShader: `
+      varying vec3 vWorld;
+      void main() {
+        vec4 world = modelMatrix * vec4(position, 1.0);
+        vWorld = world.xyz;
+        gl_Position = projectionMatrix * viewMatrix * world;
+      }`,
+    fragmentShader: `
+      uniform float uTime, uBlueprint;
+      varying vec3 vWorld;
+      ${SKY_GLSL}
+      void main() {
+        vec3 viewDirection = normalize(cameraPosition - vWorld);
+        float distanceToEye = length(cameraPosition - vWorld);
+        float detail = exp(-distanceToEye * .006);
+        vec3 n = normalize(vec3(
+          sin(vWorld.x * 1.1 + vWorld.z * .72 - uTime) * .045 * detail,
+          1.0,
+          cos(vWorld.z * 1.6 - vWorld.x * .26 - uTime * .7) * .04 * detail));
+        float fresnel = .0204 + .9796 * pow(1.0 - max(dot(n, viewDirection), 0.0), 5.0);
+        vec3 color = mix(vec3(.01, .095, .13), daylightSky(reflect(-viewDirection, n)), fresnel);
+        float sunlight = pow(max(dot(n, normalize(viewDirection + uSunDirection)), 0.0), 260.0);
+        color += vec3(1.0, .78, .43) * sunlight;
+        float mist = 1.0 - exp(-distanceToEye * .003);
+        color = mix(color, daylightSky(vec3(0.0, .01, -1.0)), mist * .66);
+        color = mix(color, vec3(.018, .067, .1), uBlueprint);
+        gl_FragColor = vec4(color, 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
+  });
+  const distantWater = new THREE.Mesh(new THREE.RingGeometry(30, 295, 128), distantWaterMaterial);
+  distantWater.rotation.x = -Math.PI / 2;
+  distantWater.position.y = WATER_LEVEL - .65;
+  distantWater.name = "Sea beyond the pool terrace";
+  scene.add(distantWater);
   const diveWorld = createDiveWorld(scene);
   const shallowFog = new THREE.Color(0x063d4b);
   const deepFog = new THREE.Color(0x031724);
@@ -422,10 +453,10 @@ export function createOcean(
     const lookY = Math.max(WATER_LEVEL - 40.8 / METRES_PER_UNIT, cameraY - lookDrop);
     camera.lookAt(
       THREE.MathUtils.lerp(0, -1.5, enter),
-      THREE.MathUtils.lerp(-.65, lookY, enter),
+      THREE.MathUtils.lerp(-.1, lookY, enter),
       THREE.MathUtils.lerp(0, THREE.MathUtils.lerp(-14, 0, descend), enter),
     );
-    const fov = THREE.MathUtils.lerp(38, mobile ? 64 : 54, enter);
+    const fov = THREE.MathUtils.lerp(60, mobile ? 64 : 54, enter);
     if (camera.fov !== fov) {
       camera.fov = fov;
       camera.updateProjectionMatrix();
@@ -439,13 +470,15 @@ export function createOcean(
     uniforms.uTime.value = physics.time;
     uniforms.uBlueprint.value = blueprint ? 1 : 0;
     const underwater = THREE.MathUtils.clamp((WATER_LEVEL - camera.position.y) * 2, 0, 1);
+    sky.update(camera, underwater);
     diveWorld.update(diveDepth, physics.time, blueprint, underwater);
     underwaterBackground.copy(shallowFog).lerp(deepFog, diveDepth / 40);
     scene.background = underwater > 0 ? underwaterBackground : null;
     const fog = scene.fog as THREE.FogExp2;
-    fog.color.set(0x06232d).lerp(underwaterBackground, underwater);
-    fog.density = THREE.MathUtils.lerp(.028, .017 + diveDepth * .00023, underwater);
+    fog.color.set(0x9ebbc2).lerp(underwaterBackground, underwater);
+    fog.density = THREE.MathUtils.lerp(.008, .017 + diveDepth * .00023, underwater);
     water.visible = underwater < .5;
+    distantWater.visible = underwater < .01;
     model.visible = diveDepth < 5;
     renderer.render(scene, camera);
     updateHitArea();
@@ -654,6 +687,7 @@ export function createOcean(
       media.removeEventListener("change", sync);
       renderer.domElement.removeEventListener("webglcontextlost", contextLost);
       diveWorld.dispose();
+      sky.dispose();
       const geometries = new Set<THREE.BufferGeometry>();
       scene.traverse((obj) => {
         if (
@@ -666,10 +700,10 @@ export function createOcean(
       geometries.forEach((g) => g.dispose());
       materials.forEach((m) => m.dispose());
       water.dispose();
+      distantWaterMaterial.dispose();
       labelMaterial.dispose();
       labelTexture.dispose();
       orbitMaterial.dispose();
-      env.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     },
