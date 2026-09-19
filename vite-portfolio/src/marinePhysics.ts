@@ -27,8 +27,8 @@ export const marineHash = (n: number) => {
 
 export function marineHabitats(): MarineHabitat[] {
   const habitats: MarineHabitat[] = [];
-  for (let id = 0; id < 36; id++) {
-    const metres = Math.min(980, 8 + id * 28);
+  for (let id = 0; id < 7; id++) {
+    const metres = 6 + id * 6;
     habitats.push({
       id,
       centre: {
@@ -37,18 +37,18 @@ export function marineHabitats(): MarineHabitat[] {
         z: -17 - marineHash(id + 45) * 14,
       },
       extent: { x: 15, y: 23, z: 12 },
-      count: metres < 220 ? 24 : 18,
-      kind: metres < 500 ? 'silver' : 'lantern',
+      count: 24,
+      kind: 'silver',
     });
   }
   // A few distant schools make the volume extend beyond the descent corridor.
-  for (const [id, metres] of [70, 190, 450, 720, 940].entries()) {
+  for (const [id, metres] of [12, 24, 36].entries()) {
     habitats.push({
       id: id + 100,
       centre: { x: id % 2 ? -35 : 35, y: WATER_LEVEL - metres / METRES_PER_UNIT, z: -64 },
       extent: { x: 18, y: 20, z: 14 },
       count: 16,
-      kind: metres < 500 ? 'silver' : 'lantern',
+      kind: 'silver',
     });
   }
   return habitats;

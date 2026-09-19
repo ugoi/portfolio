@@ -3,7 +3,7 @@ import test from 'node:test';
 import * as THREE from 'three';
 import { createMarineLife } from '../src/marineLife.ts';
 import { advanceMarineSimulation, createMarineSimulation, marineHabitats, MARINE_TIME_STEP } from '../src/marinePhysics.ts';
-import { METRES_PER_UNIT, WATER_LEVEL } from '../src/waterScale.ts';
+import { METRES_PER_UNIT, WATER_LEVEL, DESTINATION_DEPTH } from '../src/waterScale.ts';
 
 const matrices = scene => {
   const result = [];
@@ -35,9 +35,9 @@ test('marine integration is deterministic across regular, dropped and repeated f
 test('real-depth habitats stay bounded without wrapping or position resets', () => {
   const habitats = marineHabitats();
   const depths = habitats.map(habitat => (WATER_LEVEL - habitat.centre.y) * METRES_PER_UNIT);
-  assert.equal(Math.min(...depths), 8);
-  assert.equal(Math.max(...depths), 980);
-  const sampleHabitats = [habitats[0], habitats[17], habitats[35]];
+  assert.equal(Math.min(...depths), 6);
+  assert.equal(Math.max(...depths), 42);
+  const sampleHabitats = [habitats[0], habitats[3], habitats[6]];
   const simulation = createMarineSimulation(sampleHabitats);
   for (let step = 1; step <= 3600; step++) {
     const previous = simulation.schools.map(school => school.bodies.map(body => ({ ...body.position })));
@@ -47,6 +47,8 @@ test('real-depth habitats stay bounded without wrapping or position resets', () 
       const displacement = Math.hypot(body.position.x - before.x, body.position.y - before.y, body.position.z - before.z);
       const maximumSpeed = school.habitat.kind === 'silver' ? 3.2 : 2.4;
       assert.ok(displacement <= maximumSpeed * MARINE_TIME_STEP + 1e-9, 'no wrapping, teleport or large simulation step');
+      const depth = (WATER_LEVEL - body.position.y) * METRES_PER_UNIT;
+      assert.ok(depth > 0 && depth < DESTINATION_DEPTH, 'fish remain in the lagoon water column');
       for (const axis of ['x', 'y', 'z']) {
         assert.ok(Number.isFinite(body.position[axis]));
         assert.ok(Math.abs(body.position[axis] - school.habitat.centre[axis]) < school.habitat.extent[axis] + 3,
@@ -61,7 +63,7 @@ test('scrolling and viewport changes leave every fish, ray and jelly in the same
   const camera = new THREE.PerspectiveCamera(60, 16 / 9, .1, 400);
   life.update(20, 1, false, 1, camera);
   const before = matrices(scene);
-  for (const depth of [1000, 0, 190, 900, 10, 600, 20]) {
+  for (const depth of [50, 0, 15, 45, 5, 30, 20]) {
     camera.position.set(depth % 17, WATER_LEVEL - depth / METRES_PER_UNIT, 8);
     camera.aspect = depth % 2 ? 16 / 9 : 9 / 19.5;
     camera.updateProjectionMatrix();
@@ -94,7 +96,7 @@ test('marine creatures continue moving in an unseen habitat and hold exactly whe
   const schoolInitial = initial.filter(item => item.name.includes('school'));
   const schoolAdvanced = advanced.filter(item => item.name.includes('school'));
   schoolAdvanced.forEach((item, index) => assert.notDeepEqual(item.instances, schoolInitial[index].instances));
-  life.update(1000, 2, true, 1, camera);
+  life.update(50, 2, true, 1, camera);
   assert.deepEqual(matrices(scene), advanced, 'pause freezes motion even during scroll and blueprint toggles');
   life.dispose();
 });

@@ -1,14 +1,14 @@
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import { METRES_PER_UNIT, WATER_LEVEL } from "./waterScale";
+import { METRES_PER_UNIT, WATER_LEVEL, TOWN_BASE_DEPTH } from "./waterScale";
 import { WATER_OPTICS_GLSL } from "./waterOptics";
 
 /** A permanent, locally lit neighbourhood on the same ocean floor. */
 export function createBikiniBottom(scene: THREE.Scene) {
   const town = new THREE.Group();
   town.name = "Bikini Bottom — a day at Goo Lagoon";
-  town.position.y = WATER_LEVEL - 1007 / METRES_PER_UNIT;
+  town.position.y = WATER_LEVEL - TOWN_BASE_DEPTH / METRES_PER_UNIT;
   scene.add(town);
   const architecture = new THREE.Group();
   town.add(architecture);

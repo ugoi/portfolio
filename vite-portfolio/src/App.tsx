@@ -33,7 +33,7 @@ function App() {
     const journey = journeyRef.current;
     journey?.style.setProperty("--surface-visibility", String(Math.max(0, 1 - nominal / .65)));
     journey?.style.setProperty("--dive-progress", String(immersion / MAX_DIVE_DEPTH));
-    journey?.style.setProperty("--town-visibility", String(Math.max(0, Math.min(1, (immersion - 970) / 30))));
+    journey?.style.setProperty("--town-visibility", String(Math.max(0, Math.min(1, (immersion - MAX_DIVE_DEPTH * .96) / (MAX_DIVE_DEPTH * .04)))));
     setDepth(Math.round(immersion * 10) / 10);
     setAtSurface(nominal < .65);
   }, []);
@@ -117,14 +117,14 @@ function App() {
         <aside aria-label="Tauchgang und Darstellung">
         <div className="depth-instrument">
           <div className="depth-display" role="meter" aria-label="Virtuelle Tauchtiefe in Metern" aria-valuemin={0} aria-valuemax={MAX_DIVE_DEPTH} aria-valuenow={depth}>
-            <span className="micro-label">{depth >= 985 ? "BIKINI BOTTOM" : depth >= 200 ? "TIEF IM BLAU" : depth > 0 ? "UNTER WASSER" : "OBERFLÄCHE"}</span>
+            <span className="micro-label">{depth >= MAX_DIVE_DEPTH * .985 ? "BIKINI BOTTOM" : depth >= MAX_DIVE_DEPTH * .4 ? "IM BLAU" : depth > 0 ? "UNTER WASSER" : "OBERFLÄCHE"}</span>
             <span className="depth-reading"><strong>{Math.round(depth).toLocaleString("de-CH")}</strong><span>m</span></span>
           </div>
           <div className="depth-ruler" aria-hidden="true">
-            {[0, 250, 500, 750, 1000].map(mark => <span key={mark}>{mark === 1000 ? "1k" : mark}</span>)}
+            {[0, 10, 20, 30, 40, MAX_DIVE_DEPTH].map(mark => <span key={mark}>{mark}</span>)}
             <i className="depth-marker" style={{ top: `${depth / MAX_DIVE_DEPTH * 100}%` }} />
           </div>
-          <span className="depth-end" aria-hidden="true">1.000 M</span>
+          <span className="depth-end" aria-hidden="true">{MAX_DIVE_DEPTH} M</span>
         </div>
         <div className="journey-controls">
           <span className="journey-position" aria-hidden="true"><i />{currentChapter}</span>
@@ -143,7 +143,7 @@ function App() {
           <div className="buoy-interaction" ref={interactionRef} />
           {!sceneReady && <div className="fallback-world" aria-hidden="true"><div className="fallback-sky" /><div className="fallback-sea" /><div className="fallback-ring" /><div className="fallback-depth" /><div className="fallback-town"><span>🪨</span><span>🗿</span><span>🍍</span></div></div>}
           <div className="scene-atmosphere" aria-hidden="true" />
-          <div className="destination-badge" aria-hidden="true"><span>1.000 M UNTER DEM ALLTAG</span>Bikini Bottom.</div>
+          <div className="destination-badge" aria-hidden="true"><span>RUND {MAX_DIVE_DEPTH} M UNTER DEM ALLTAG</span>Bikini Bottom.</div>
         </div>
         <div className="journey-content">
           <section className="surface-section" aria-labelledby="hero-title">
@@ -197,7 +197,7 @@ function App() {
             </article>
           </section>
           <section className="arrival-chapter" id="bikini-bottom" aria-labelledby="arrival-title">
-            <div><p className="eyebrow">IRGENDWO ZWISCHEN TIEFSEE UND KINDHEIT.</p><h2 id="arrival-title">Da unten wohnt<br /><em>noch jemand.</em></h2><span className="descent-line" aria-hidden="true" /></div>
+            <div><p className="eyebrow">IRGENDWO ZWISCHEN KORALLENRIFF UND KINDHEIT.</p><h2 id="arrival-title">Da unten wohnt<br /><em>noch jemand.</em></h2><span className="descent-line" aria-hidden="true" /></div>
           </section>
           <section className="contact-chapter" aria-labelledby="contact-title">
             <div className="contact-inner" id="contact">
