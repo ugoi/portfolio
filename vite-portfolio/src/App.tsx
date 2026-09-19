@@ -65,10 +65,11 @@ function App() {
       controller.current?.setDive(next);
       journey.style.setProperty("--surface-visibility", String(Math.max(0, 1 - next / .65)));
       journey.style.setProperty("--dive-progress", String(immersion / MAX_DIVE_DEPTH));
+      journey.style.setProperty("--town-visibility", String(Math.max(0, Math.min(1, (immersion - 920) / 70))));
       setDepth(Math.round(immersion * 10) / 10);
       setAtSurface(next < .65);
       const chapters = [
-        ["contact", "05 / EIN HALLO"], ["tech", "04 / DIE NEUGIER"],
+        ["contact", "06 / FEIERABEND"], ["bikini-bottom", "05 / BIKINI BOTTOM"], ["tech", "04 / DIE NEUGIER"],
         ["elements", "03 / DER ANTRIEB"], ["about", "02 / DER MENSCH"],
       ];
       const active = chapters.find(([id]) => {
@@ -94,7 +95,7 @@ function App() {
 
 
   return (
-    <div className={`site ${blueprint ? "is-blueprint" : ""} ${depth > 0 ? "is-underwater" : ""}`}>
+    <div className={`site ${blueprint ? "is-blueprint" : ""} ${depth > 0 ? "is-underwater" : ""} ${depth > 900 ? "is-in-town" : ""}`}>
       <a className="skip-link" href="#about">Direkt zum Inhalt</a>
       <div className="site-chrome">
         <header className="site-header">
@@ -111,14 +112,14 @@ function App() {
         <aside aria-label="Tauchgang und Darstellung">
         <div className="depth-instrument">
           <div className="depth-display" role="meter" aria-label="Virtuelle Tauchtiefe in Metern" aria-valuemin={0} aria-valuemax={MAX_DIVE_DEPTH} aria-valuenow={depth}>
-            <span className="micro-label">{depth > 0 ? "UNTER WASSER" : "OBERFLÄCHE"}</span>
-            <span className="depth-reading"><strong>{depth.toFixed(1).replace(".", ",")}</strong><span>m</span></span>
+            <span className="micro-label">{depth >= 985 ? "BIKINI BOTTOM" : depth >= 200 ? "TIEF IM BLAU" : depth > 0 ? "UNTER WASSER" : "OBERFLÄCHE"}</span>
+            <span className="depth-reading"><strong>{Math.round(depth).toLocaleString("de-CH")}</strong><span>m</span></span>
           </div>
           <div className="depth-ruler" aria-hidden="true">
-            {[0, 10, 20, 30, 40].map(mark => <span key={mark}>{String(mark).padStart(2, "0")}</span>)}
+            {[0, 250, 500, 750, 1000].map(mark => <span key={mark}>{mark === 1000 ? "1k" : mark}</span>)}
             <i className="depth-marker" style={{ top: `${depth / MAX_DIVE_DEPTH * 100}%` }} />
           </div>
-          <span className="depth-end" aria-hidden="true">40 M</span>
+          <span className="depth-end" aria-hidden="true">1.000 M</span>
         </div>
         <div className="journey-controls">
           <span className="journey-position" aria-hidden="true"><i />{currentChapter}</span>
@@ -135,13 +136,14 @@ function App() {
         <div className={`dive-viewport ${sceneReady ? "" : "is-fallback"}`} ref={viewportRef}>
           <div className="hero-scene" ref={sceneRef} aria-hidden="true" />
           <div className="buoy-interaction" ref={interactionRef} />
-          {!sceneReady && <div className="fallback-world" aria-hidden="true"><div className="fallback-sky" /><div className="fallback-sea" /><div className="fallback-ring" /><div className="fallback-shaft" /></div>}
+          {!sceneReady && <div className="fallback-world" aria-hidden="true"><div className="fallback-sky" /><div className="fallback-sea" /><div className="fallback-ring" /><div className="fallback-depth" /><div className="fallback-town"><span>🪨</span><span>🗿</span><span>🍍</span></div></div>}
           <div className="scene-atmosphere" aria-hidden="true" />
+          <div className="destination-badge" aria-hidden="true"><span>1.000 M UNTER DEM ALLTAG</span>Bikini Bottom.</div>
         </div>
         <div className="journey-content">
           <section className="surface-section" aria-labelledby="hero-title">
             <div className="surface-content" inert={!atSurface}>
-              <p className="eyebrow"><span className="fine-line" />WASSER. WERKSTATT. WEITBLICK.</p>
+              <p className="eyebrow"><span className="fine-line" />WASSER. WEITBLICK. EIN BISSCHEN WAHNSINN.</p>
               <h1 id="hero-title">In meinem<br /><em>Element.</em></h1>
               <div className="hero-detail">
                 <p>Bademeister von Beruf.<br />Macher aus Überzeugung.</p>
@@ -153,7 +155,7 @@ function App() {
           </section>
           <div id="dive-start" className="dive-anchor" aria-hidden="true" />
           <div className="open-water">
-            <p><span className="eyebrow">UNTER DER OBERFLÄCHE</span>Die Welt wird <em>leiser.</em></p>
+            <p><span className="eyebrow">UNTER DER OBERFLÄCHE</span>Immer tiefer.<br /><em>Immer neugieriger.</em></p>
             <span className="descent-line" aria-hidden="true" />
           </div>
 
@@ -189,11 +191,14 @@ function App() {
               <div className="thought-line"><span aria-hidden="true">↳</span>Stillstand? Nicht mein Element.</div>
             </article>
           </section>
+          <section className="arrival-chapter" id="bikini-bottom" aria-labelledby="arrival-title">
+            <div><p className="eyebrow">IRGENDWO ZWISCHEN TIEFSEE UND KINDHEIT.</p><h2 id="arrival-title">Da unten wohnt<br /><em>noch jemand.</em></h2><span className="descent-line" aria-hidden="true" /></div>
+          </section>
           <section className="contact-chapter" aria-labelledby="contact-title">
             <div className="contact-inner" id="contact">
-              <p className="eyebrow"><span className="fine-line" />NOCH LANGE NICHT AM ENDE.</p>
+              <p className="eyebrow"><span className="fine-line" />FEIERABEND. AUCH UNTER WASSER.</p>
               <a className="contact-link" href="mailto:codecraftingpro@gmail.com">
-                <h2 id="contact-title">Auf ein<br /><em>Hallo.</em></h2><span className="contact-arrow"><Arrow /></span>
+                <h2 id="contact-title">Noch auf <em>Empfang?</em></h2><span className="contact-arrow"><Arrow /></span>
               </a>
               <div className="contact-details">
                 <a href="mailto:codecraftingpro@gmail.com">codecraftingpro@gmail.com <span>↗</span></a>

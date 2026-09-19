@@ -53,7 +53,7 @@ svg { width: 24px; height: 24px; }
 .depth-reading strong { font-size: 39px; font-weight: 400; font-variant-numeric: tabular-nums; line-height: 1.4; letter-spacing: -2px; }
 .depth-reading > span { font: 12px monospace; color: var(--warm); }
 .depth-ruler { position: absolute; inset: 0 2px 0 auto; width: 25px; border-right: 1px solid #e1e9dc66; display: flex; flex-direction: column; justify-content: space-between; background: repeating-linear-gradient(to bottom, transparent 0 calc(2.5% - 1px), #d2e1dd4d calc(2.5% - 1px) 2.5%) right / 4px 100% no-repeat; }
-.depth-ruler > span { font: 8px monospace; text-align: left; transform: translateY(-50%); color: #d4e0d9; }
+.depth-ruler > span { margin-left: -6px; font: 8px monospace; text-align: left; transform: translateY(-50%); color: #d4e0d9; }
 .depth-ruler > span:last-of-type { transform: translateY(50%); }
 .depth-marker { position: absolute; right: -4px; width: 12px; height: 3px; background: var(--warm); box-shadow: 0 0 12px #e5c5a090; transform: translateY(-50%); }
 .depth-end { position: absolute; right: 0; bottom: -34px; font: 7px monospace; letter-spacing: 1.5px; color: #d0dcd7; }
@@ -141,7 +141,8 @@ h1 em { font-size: 1.16em; letter-spacing: -.06em; color: #f5e7cf; }
 .fallback-sea { position: absolute; inset: 37% 0 0; background: repeating-radial-gradient(ellipse at 65% -20%, transparent 0 16px, #77bec92d 18px 21px, transparent 24px 46px), linear-gradient(#296271, #082c45 65%, #041a28); }
 .fallback-ring { position: absolute; width: 28%; aspect-ratio: 1; top: 50%; left: 60%; background: conic-gradient(#e49154 0deg 45deg, #dce6e2 45deg 90deg, #e49154 90deg 135deg, #dce6e2 135deg 180deg, #e49154 180deg 225deg, #dce6e2 225deg 270deg, #e49154 270deg 315deg, #dce6e2 315deg 360deg); border-radius: 50%; transform: perspective(700px) rotateX(62deg) rotateZ(-12deg); mask: radial-gradient(transparent 0 40%, #000 41%); }
 .fallback-sky, .fallback-sea, .fallback-ring { opacity: var(--surface-visibility); }
-.fallback-shaft { position: absolute; inset: -30%; background: repeating-radial-gradient(ellipse at 50% 55%, transparent 0 68px, #9bcee33b 70px 73px, #071e4155 74px 100px), radial-gradient(ellipse at center, #030f23, #09476b); border-radius: 50%; box-shadow: inset 0 0 180px 80px #03111d; opacity: min(1, calc(var(--dive-progress) * 10)); transform: perspective(700px) rotateX(20deg); }
+.fallback-depth { position: absolute; inset: 0; background: radial-gradient(ellipse at 30% -30%, #3ec6ce55, transparent 65%), linear-gradient(#063e62, #041329 75%); opacity: min(1, calc(var(--dive-progress) * 50)); }
+.fallback-town { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center; gap: 3vw; padding-bottom: 30svh; font-size: clamp(70px, 15vw, 150px); background: linear-gradient(#38aebe, #43b7c0 70%, #e3c484 70%); opacity: var(--town-visibility); }
 .is-blueprint .chapter-card { background: #031a2ce3; border-color: #83c9d44d; }
 @media (min-width: 1700px) {
   .surface-content, .surface-location { left: max(7.5%, calc((100vw - 1450px) / 2)); }
@@ -243,3 +244,56 @@ h1 em { font-size: 1.16em; letter-spacing: -.06em; color: #f5e7cf; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { transition: none !important; }
 }
+
+/* The last viewport belongs to the town, with a small contact dock below it. */
+.dive-journey { --town-visibility: 0; }
+.depth-reading strong { font-size: 34px; }
+.arrival-chapter { height: 160svh; padding: 28svh 17% 0 7.5%; }
+.arrival-chapter h2 { font-size: clamp(35px, 5vw, 70px); line-height: 1.05; font-weight: 400; letter-spacing: -.05em; margin: 20px 0 35px; }
+.arrival-chapter em { color: var(--warm); }
+.arrival-chapter .descent-line { display: block; }
+.destination-badge { position: absolute; top: 14%; left: 10%; right: 10%; text-align: center; font: italic clamp(28px, 5vw, 62px)/1.1 Georgia, serif; color: #fff4ce; opacity: var(--town-visibility); text-shadow: 0 3px 20px #075b71; pointer-events: none; }
+.destination-badge span { display: block; font: 8px/2.8 Display, sans-serif; letter-spacing: 2px; }
+.contact-chapter { min-height: 120svh; padding-bottom: 85px; }
+.contact-inner { max-width: 490px; padding: 19px 23px 16px; background: #032737df; border: 1px solid #c4eee544; border-radius: 12px; }
+.contact-inner::before { display: none; }
+.contact-inner > .eyebrow { font-size: 7px; margin: 0; letter-spacing: 1px; }
+.contact-link { gap: 15px; }
+.contact-link h2 { font-size: 31px; line-height: 1.15; letter-spacing: -.04em; margin: 13px 0 19px; }
+.contact-arrow { width: 34px; height: 34px; flex: 0 0 34px; }
+.contact-arrow svg { width: 18px; height: 18px; }
+.contact-details { padding: 13px 0; font-size: 10px; gap: 12px; }
+.contact-details a { gap: 8px; }
+.site-footer { margin-top: 12px; font-size: 6px; gap: 15px; }
+.is-in-town .scene-atmosphere { background: radial-gradient(ellipse at 50% 35%, transparent 50%, #064b5820); }
+@media (max-width: 600px) {
+  .depth-reading strong { font-size: 26px; letter-spacing: -1px; }
+  .depth-ruler > span { font-size: 6px; }
+  .surface-content .eyebrow { max-width: 27ch; }
+  .arrival-chapter { padding-left: 6%; }
+  .arrival-chapter .eyebrow { font-size: 7px; }
+  .destination-badge { top: 15%; font-size: 31px; }
+  .destination-badge span { font-size: 6px; letter-spacing: 1.4px; }
+  .contact-chapter { padding: 120px 17% 85px 6%; }
+  .contact-inner { padding: 16px; }
+  .contact-link h2 { font-size: 25px; margin: 11px 0 14px; }
+  .contact-inner > .eyebrow { font-size: 6px; letter-spacing: .7px; }
+  .contact-details { display: block; font-size: 10px; padding: 11px 0; }
+  .contact-details a + a { margin-top: 11px; }
+  .site-footer > span { display: none; }
+  .site-footer > a { margin: 0; }
+}
+@media (min-width: 601px) {
+  .contact-chapter { padding-bottom: 60px; }
+  .contact-inner { max-width: 900px; display: grid; grid-template-columns: 1fr auto; gap: 8px 20px; padding: 12px 20px; }
+  .contact-inner > .eyebrow { display: none; }
+  .contact-link h2 { font-size: 24px; margin: 0; }
+  .contact-arrow { display: none; }
+  .contact-details { border: 0; padding: 0; gap: 25px; }
+  .site-footer { grid-column: 1 / -1; margin: 0; }
+}
+.destination-badge { color: #063d52; text-shadow: 0 2px 20px #a3efed80; }
+.is-in-town .depth-instrument, .is-in-town .journey-position { color: #073f51; text-shadow: 0 1px 12px #c9ece799; }
+.is-in-town .micro-label, .is-in-town .depth-reading > span, .is-in-town .depth-ruler > span, .is-in-town .depth-end { color: #073f51; }
+.is-in-town .depth-ruler { border-color: #073f5180; background-image: repeating-linear-gradient(to bottom, transparent 0 calc(2.5% - 1px), #073f5166 calc(2.5% - 1px) 2.5%); }
+.is-in-town .depth-marker { background: #073f51; box-shadow: none; }
