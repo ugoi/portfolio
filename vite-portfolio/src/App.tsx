@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { OceanController } from "./ocean";
+import { cameraAtDive, depthAtScroll, MAX_DIVE_DEPTH } from "./dive";
 
 const Arrow = ({ down = false }: { down?: boolean }) => (
   <svg
@@ -23,6 +24,10 @@ const readMotion = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 function App() {
+  const journeyRef = useRef<HTMLElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const [depth, setDepth] = useState(0);
+  const [atSurface, setAtSurface] = useState(true);
   const sceneRef = useRef<HTMLDivElement>(null);
   const interactionRef = useRef<HTMLDivElement>(null);
   const controller = useRef<OceanController | null>(null);
@@ -66,6 +71,42 @@ function App() {
     controller.current?.setPaused(paused);
   }, [paused, sceneReady]);
 
+  useEffect(() => {
+    const journey = journeyRef.current;
+    const viewport = viewportRef.current;
+    if (!journey || !viewport) return;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const top = journey.getBoundingClientRect().top + window.scrollY;
+      const next = depthAtScroll(window.scrollY, top, journey.offsetHeight, viewport.offsetHeight);
+      const immersion = cameraAtDive(next, viewport.clientWidth < 600).depth;
+      controller.current?.setDive(next);
+      viewport.style.setProperty("--surface-visibility", String(Math.max(0, 1 - next / .65)));
+      viewport.style.setProperty("--dive-progress", String(immersion / MAX_DIVE_DEPTH));
+      setDepth(Math.round(immersion * 10) / 10);
+      setAtSurface(next < .65);
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    const observer = new ResizeObserver(schedule);
+    observer.observe(journey);
+    observer.observe(viewport);
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    update();
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+    };
+  }, [sceneReady]);
+
+  const underwater = depth > 0;
+  const atBottom = depth >= 38;
+
   return (
     <div className={`site ${blueprint ? "is-blueprint" : ""}`}>
       <a className="skip-link" href="#about">
@@ -96,88 +137,120 @@ function App() {
       </header>
 
       <main>
-        <section className="hero" id="top" aria-labelledby="hero-title">
-          <div className="hero-scene" ref={sceneRef} aria-hidden="true" />
-          <div className="buoy-interaction" ref={interactionRef} />
-          {!sceneReady && (
-            <div className="fallback-art" aria-hidden="true">
-              <div />
+        <section className="dive-journey" id="top" ref={journeyRef} aria-labelledby="hero-title">
+          <div id="dive-start" className="dive-anchor" aria-hidden="true" />
+          <div className={`hero dive-viewport ${underwater ? "is-submerged" : ""} ${!sceneReady ? "is-fallback" : ""}`} ref={viewportRef}>
+            <div className="hero-scene" ref={sceneRef} aria-hidden="true" />
+            <div className="buoy-interaction" ref={interactionRef} />
+            {!sceneReady && (
+              <div className="fallback-art" aria-hidden="true">
+                <div />
+              </div>
+            )}
+            {!sceneReady && (
+              <div className="dive-fallback" aria-hidden="true">
+                <div className="fallback-shaft" />
+                <div className="fallback-daylight" />
+              </div>
+            )}
+            <div className="underwater-vignette" aria-hidden="true" />
+            <div className="hero-shade" aria-hidden="true" />
+            <div className="hero-cross cross-one" aria-hidden="true">
+              +
             </div>
-          )}
-          <div className="hero-shade" aria-hidden="true" />
-          <div className="hero-cross cross-one" aria-hidden="true">
-            +
-          </div>
-          <div className="hero-cross cross-two" aria-hidden="true">
-            +
-          </div>
-          <div className="hero-content">
-            <p className="eyebrow">
-              <span className="status-dot" /> WASSER. WERKSTATT. WEITBLICK.
-            </p>
-            <h1 id="hero-title">
-              IN MEINEM
-              <br />
-              <span>ELEMENT.</span>
-            </h1>
-            <p className="hero-intro">
-              Bademeister von Beruf.
-              <br />
-              Macher aus Überzeugung.
-            </p>
-            <a className="primary-link" href="#about">
-              Tauch ein <Arrow down />
-            </a>
-          </div>
-          <div className="scene-label" aria-hidden="true">
-            <span className="label-line" />
-            <span>
-              01 / WASSER TRIFFT TECHNIK
-              <br />
-              <b>{sceneReady ? "GREIF DEN RING. SPÜR DIE WELLEN." : "DER EIGENE KURS."}</b>
-            </span>
-          </div>
-          <div className="hero-bottom">
-            <span className="location">
-              <span>◎</span> ZÜRICH, SCHWEIZ
-            </span>
-            <div
-              className="scene-controls"
-              role="group"
-              aria-label="Darstellung der Wasserwelt"
-            >
-              <button
-                type="button"
-                className={!blueprint ? "selected" : ""}
-                aria-pressed={!blueprint}
-                onClick={() => setBlueprint(false)}
+            <div className="hero-cross cross-two" aria-hidden="true">
+              +
+            </div>
+            <div className="hero-content" inert={!atSurface}>
+              <p className="eyebrow">
+                <span className="status-dot" /> WASSER. WERKSTATT. WEITBLICK.
+              </p>
+              <h1 id="hero-title">
+                IN MEINEM
+                <br />
+                <span>ELEMENT.</span>
+              </h1>
+              <p className="hero-intro">
+                Bademeister von Beruf.
+                <br />
+                Macher aus Überzeugung.
+              </p>
+              <a className="primary-link" href="#dive-start">
+                Tauch ein <Arrow down />
+              </a>
+            </div>
+            <div className="scene-label" aria-hidden="true">
+              <span className="label-line" />
+              <span>
+                01 / WASSER TRIFFT TECHNIK
+                <br />
+                <b>{sceneReady ? "GREIF DEN RING. SPÜR DIE WELLEN." : "DER EIGENE KURS."}</b>
+              </span>
+            </div>
+            <div className="depth-display" role="meter" aria-label="Virtuelle Tauchtiefe in Metern" aria-valuemin={0} aria-valuemax={MAX_DIVE_DEPTH} aria-valuenow={depth}>
+              <span className="depth-caption">{underwater ? "UNTER DER OBERFLÄCHE" : "AN DER OBERFLÄCHE"}</span>
+              <span className="depth-reading"><strong>{depth.toFixed(1).replace(".", ",")}</strong><span>m</span></span>
+              <span className="depth-limit">TIEFE / 40 METER</span>
+            </div>
+            <div className="depth-ruler" aria-hidden="true">
+              {[0, 10, 20, 30, 40].map(mark => <span key={mark}>{String(mark).padStart(2, "0")}</span>)}
+              <i className="depth-marker" />
+            </div>
+            <div className={`dive-caption ${depth >= 4 && depth < 9 ? "is-visible" : ""}`} aria-hidden={!(depth >= 4 && depth < 9)}>
+              <p className="eyebrow">01 / ABTAUCHEN</p>
+              <p>Die Welt wird leiser.</p>
+            </div>
+            <div className={`dive-caption ${depth >= 18 && depth < 24 ? "is-visible" : ""}`} aria-hidden={!(depth >= 18 && depth < 24)}>
+              <p className="eyebrow">02 / WEITERDENKEN</p>
+              <p>Neugier kennt keinen Grund.</p>
+            </div>
+            <div className={`dive-caption dive-arrival ${atBottom ? "is-visible" : ""}`} inert={!atBottom}>
+              <p className="eyebrow">03 / ANGEKOMMEN</p>
+              <p>Und dahinter?<br /><span>Einfach Stefan.</span></p>
+              <a href="#about">Lern mich kennen <Arrow down /></a>
+            </div>
+            <div className="hero-bottom">
+              <span className="location">
+                <span>◎</span> {underwater ? "IN MEINEM ELEMENT" : "ZÜRICH, SCHWEIZ"}
+              </span>
+              <div
+                className="scene-controls"
+                role="group"
+                aria-label="Darstellung der Wasserwelt"
               >
-                Ozean
-              </button>
-              <button
-                type="button"
-                className={blueprint ? "selected" : ""}
-                aria-pressed={blueprint}
-                onClick={() => setBlueprint(true)}
-              >
-                Bauplan
-              </button>
-              {sceneReady && (
                 <button
-                  className="motion-button"
                   type="button"
-                  onClick={() => setPaused(!motionPaused)}
-                  aria-label={
-                    motionPaused ? "Animation starten" : "Animation pausieren"
-                  }
+                  className={!blueprint ? "selected" : ""}
+                  aria-pressed={!blueprint}
+                  onClick={() => setBlueprint(false)}
                 >
-                  {motionPaused ? "▶" : "Ⅱ"}
+                  Wasser
                 </button>
-              )}
+                <button
+                  type="button"
+                  className={blueprint ? "selected" : ""}
+                  aria-pressed={blueprint}
+                  onClick={() => setBlueprint(true)}
+                >
+                  Bauplan
+                </button>
+                {sceneReady && (
+                  <button
+                    className="motion-button"
+                    type="button"
+                    onClick={() => setPaused(!motionPaused)}
+                    aria-label={
+                      motionPaused ? "Animation starten" : "Animation pausieren"
+                    }
+                  >
+                    {motionPaused ? "▶" : "Ⅱ"}
+                  </button>
+                )}
+              </div>
+              <a className="scroll-cue" href={underwater ? "#about" : "#dive-start"}>
+                {underwater ? "ZUM MENSCHEN" : "SCROLLEN & ABTAUCHEN"} <Arrow down />
+              </a>
             </div>
-            <a className="scroll-cue" href="#about">
-              MEHR ENTDECKEN <Arrow down />
-            </a>
           </div>
         </section>
 

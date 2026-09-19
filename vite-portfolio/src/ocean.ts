@@ -2,11 +2,14 @@ import * as THREE from "three";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { Reflector } from "three/addons/objects/Reflector.js";
 import { BuoyPhysics } from "./buoyPhysics";
-import { WATER_LEVEL, WAVE_GLSL, WAVE_GLSL_CALLS, sampleWater } from "./waves";
+import { createDiveWorld } from "./diveWorld";
+import { cameraAtDive } from "./dive";
+import { METRES_PER_UNIT, WATER_LEVEL, WAVE_GLSL, WAVE_GLSL_CALLS, sampleWater } from "./waves";
 
 export interface OceanController {
   setBlueprint: (value: boolean) => void;
   setPaused: (value: boolean | null) => void;
+  setDive: (depth: number) => void;
   dispose: () => void;
 }
 
@@ -27,7 +30,7 @@ export function createOcean(
   container.appendChild(renderer.domElement);
   const scene = new THREE.Scene();
   scene.fog = new THREE.FogExp2(0x06232d, 0.028);
-  const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
+  const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 300);
   const pmrem = new THREE.PMREMGenerator(renderer);
   const room = new RoomEnvironment();
   const env = pmrem.fromScene(room, 0.04);
@@ -329,6 +332,10 @@ export function createOcean(
   scene.add(water);
   const waterMaterial = water.material as THREE.ShaderMaterial;
   const uniforms = waterMaterial.uniforms;
+  const diveWorld = createDiveWorld(scene);
+  const shallowFog = new THREE.Color(0x063d4b);
+  const deepFog = new THREE.Color(0x031724);
+  const underwaterBackground = new THREE.Color();
 
   const physics = new BuoyPhysics({ scale: 1.12, x: 2.6, z: 1 });
   interaction.hidden = false;
@@ -346,6 +353,7 @@ export function createOcean(
   let frame = 0, previous = 0, activePointer: number | null = null;
   let visible = true, blueprint = false, userPaused: boolean | null = null;
   let disposed = false, contextAvailable = true;
+  let diveDepth = 0;
   let keyboardRelease: ReturnType<typeof setTimeout> | undefined;
   const media = window.matchMedia("(prefers-reduced-motion: reduce)");
   const paused = () => userPaused ?? media.matches;
@@ -383,6 +391,7 @@ export function createOcean(
   const path = (points: Point[]) => points.map((p, i) =>
     `${i ? "L" : "M"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ") + " Z";
   const updateHitArea = () => {
+    if (diveDepth > .15) return;
     const outer: Point[] = [], inner: Point[] = [];
     model.updateWorldMatrix(true, false);
     const facing = Math.abs(new THREE.Vector3(0, 0, 1).applyQuaternion(model.quaternion)
@@ -400,12 +409,44 @@ export function createOcean(
     }
     hitArea.setAttribute("d", path(hull(outer)) + (inner.length ? " " + path(inner) : ""));
   };
+  const updateCamera = () => {
+    const enter = THREE.MathUtils.smoothstep(diveDepth, 0, .8);
+    const descend = THREE.MathUtils.smoothstep(diveDepth, .8, 5);
+    const cameraY = cameraAtDive(diveDepth, mobile).y;
+    const cameraX = Math.sin(diveDepth * .12) * 2.2 * descend;
+    const cameraZ = THREE.MathUtils.lerp(mobile ? 14 : 12, 7.5 + Math.sin(diveDepth * .08) * 1.5, enter);
+    camera.position.set(cameraX, cameraY, cameraZ);
+    // During entry the surface remains above the viewer. The gaze gradually
+    // pitches into the shaft, then levels out before reaching its floor.
+    const lookDrop = THREE.MathUtils.lerp(3.0, 35.0, descend);
+    const lookY = Math.max(WATER_LEVEL - 40.8 / METRES_PER_UNIT, cameraY - lookDrop);
+    camera.lookAt(
+      THREE.MathUtils.lerp(0, -1.5, enter),
+      THREE.MathUtils.lerp(-.65, lookY, enter),
+      THREE.MathUtils.lerp(0, THREE.MathUtils.lerp(-14, 0, descend), enter),
+    );
+    const fov = THREE.MathUtils.lerp(38, mobile ? 64 : 54, enter);
+    if (camera.fov !== fov) {
+      camera.fov = fov;
+      camera.updateProjectionMatrix();
+    }
+    camera.updateMatrixWorld();
+  };
   const renderFrame = () => {
     if (disposed || !contextAvailable) return;
     model.position.copy(physics.position);
     model.quaternion.copy(physics.quaternion);
     uniforms.uTime.value = physics.time;
     uniforms.uBlueprint.value = blueprint ? 1 : 0;
+    const underwater = THREE.MathUtils.clamp((WATER_LEVEL - camera.position.y) * 2, 0, 1);
+    diveWorld.update(diveDepth, physics.time, blueprint, underwater);
+    underwaterBackground.copy(shallowFog).lerp(deepFog, diveDepth / 40);
+    scene.background = underwater > 0 ? underwaterBackground : null;
+    const fog = scene.fog as THREE.FogExp2;
+    fog.color.set(0x06232d).lerp(underwaterBackground, underwater);
+    fog.density = THREE.MathUtils.lerp(.028, .017 + diveDepth * .00023, underwater);
+    water.visible = underwater < .5;
+    model.visible = diveDepth < 5;
     renderer.render(scene, camera);
     updateHitArea();
   };
@@ -426,8 +467,11 @@ export function createOcean(
         frame = requestAnimationFrame(tick);
       }
     } else {
+      const wasRunning = frame !== 0;
       cancelAnimationFrame(frame);
       frame = 0;
+      // Pausing can cancel a queued scroll update before its first paint.
+      if (wasRunning && visible && !document.hidden) renderFrame();
     }
   };
   const endGrab = () => {
@@ -455,8 +499,7 @@ export function createOcean(
     renderer.setSize(width, height);
     svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
     camera.aspect = width / height;
-    camera.position.set(0, mobile ? 6 : 5.2, mobile ? 14 : 12);
-    camera.lookAt(0, -0.65, 0);
+    updateCamera();
     camera.updateProjectionMatrix();
     model.scale.setScalar(mobile ? 0.72 : 1.12);
     if (first || wasMobile !== mobile) reset();
@@ -474,7 +517,7 @@ export function createOcean(
     target.y = sampleWater(target.x, target.z, physics.time).height + grabHeight;
   };
   const pointerDown = (event: PointerEvent) => {
-    if (!contextAvailable || activePointer !== null || !event.isPrimary || event.button !== 0) return;
+    if (!contextAvailable || diveDepth > .15 || activePointer !== null || !event.isPrimary || event.button !== 0) return;
     setRay(event);
     model.updateWorldMatrix(true, true);
     const hit = raycaster.intersectObject(body, false)[0];
@@ -503,6 +546,7 @@ export function createOcean(
     if (event.pointerId === activePointer) endGrab();
   };
   const keyDown = (event: KeyboardEvent) => {
+    if (diveDepth > .15) return;
     if (event.key.toLowerCase() === "r" || event.key === "Home") { event.preventDefault(); reset(); return; }
     if (event.key === "Escape") { event.preventDefault(); endGrab(); return; }
     if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key) || activePointer !== null) return;
@@ -576,6 +620,21 @@ export function createOcean(
       userPaused = value;
       sync();
     },
+    setDive(value) {
+      if (!Number.isFinite(value)) return;
+      const depth = THREE.MathUtils.clamp(value, 0, 40);
+      if (depth === diveDepth) return;
+      diveDepth = depth;
+      if (depth > .15) {
+        endGrab();
+        if (document.activeElement === hitArea) hitArea.blur();
+      }
+      interaction.hidden = depth > .15 || !contextAvailable;
+      updateCamera();
+      // The animation loop paints the latest camera at its existing 30 Hz.
+      // A paused/static view still responds immediately to deliberate scroll.
+      if (!frame) renderFrame();
+    },
     dispose() {
       disposed = true;
       cancelAnimationFrame(frame);
@@ -594,6 +653,7 @@ export function createOcean(
       document.removeEventListener("visibilitychange", visibilityChanged);
       media.removeEventListener("change", sync);
       renderer.domElement.removeEventListener("webglcontextlost", contextLost);
+      diveWorld.dispose();
       const geometries = new Set<THREE.BufferGeometry>();
       scene.traverse((obj) => {
         if (

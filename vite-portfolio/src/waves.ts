@@ -1,7 +1,7 @@
 import { Vector3 } from "three";
 
-export const WATER_LEVEL = -2.25;
-export const METRES_PER_UNIT = 0.25;
+import { WATER_LEVEL, METRES_PER_UNIT } from "./waterScale.ts";
+export { WATER_LEVEL, METRES_PER_UNIT };
 export const GRAVITY = 9.81;
 
 // The GPU and CPU consume this single set of wave parameters. Plane-local XY
