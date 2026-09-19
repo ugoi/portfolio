@@ -1,6 +1,13 @@
 import { WATER_LEVEL, METRES_PER_UNIT } from "./waterScale.ts";
 
-export const MAX_DIVE_DEPTH = 40;
+export const MAX_DIVE_DEPTH = 1000;
+
+// Give the surface and its fish time to breathe, then cross the open water
+// faster. The final part of the document holds the camera in Bikini Bottom.
+export function depthAtProgress(progress: number): number {
+  const p = Math.min(1, Math.max(0, progress / .88));
+  return MAX_DIVE_DEPTH * (.02 * p + .98 * p * p * p);
+}
 
 // Use the actual sticky viewport height: mobile browser chrome can change
 // innerHeight while the stable (svh) scene and the document stay the same size.
@@ -12,7 +19,7 @@ export function depthAtScroll(
 ): number {
   const travel = journeyHeight - viewportHeight;
   if (travel <= 0) return 0;
-  return Math.min(1, Math.max(0, (scrollY - journeyTop) / travel)) * MAX_DIVE_DEPTH;
+  return depthAtProgress((scrollY - journeyTop) / travel);
 }
 
 // Scroll first approaches the water from above. The readout reports actual

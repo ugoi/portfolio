@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { Reflector } from "three/addons/objects/Reflector.js";
 import { BuoyPhysics } from "./buoyPhysics";
 import { createDiveWorld } from "./diveWorld";
-import { cameraAtDive } from "./dive";
+import { cameraAtDive, MAX_DIVE_DEPTH } from "./dive";
 import { createSky } from "./sky";
 import { SKY_GLSL, SUN_DIRECTION } from "./lighting";
 import { METRES_PER_UNIT, WATER_LEVEL, WAVE_GLSL, WAVE_GLSL_CALLS, sampleWater } from "./waves";
@@ -31,7 +31,7 @@ export function createOcean(
   container.appendChild(renderer.domElement);
   const scene = new THREE.Scene();
   scene.fog = new THREE.FogExp2(0x06232d, 0.028);
-  const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 300);
+  const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 650);
   const sky = createSky(renderer, scene);
   const sunDirection = new THREE.Vector3(...SUN_DIRECTION).normalize();
 
@@ -319,8 +319,7 @@ export function createOcean(
   scene.add(water);
   const waterMaterial = water.material as THREE.ShaderMaterial;
   const uniforms = waterMaterial.uniforms;
-  // The detailed Gerstner patch sits inside the pool. Beyond the deck this
-  // quiet, low-cost water ring carries the light all the way to the horizon.
+  // Open sea continues beyond the detailed foreground wave patch.
   const distantWaterMaterial = new THREE.ShaderMaterial({
     uniforms: {
       uTime: uniforms.uTime,
@@ -358,14 +357,15 @@ export function createOcean(
         #include <colorspace_fragment>
       }`,
   });
-  const distantWater = new THREE.Mesh(new THREE.RingGeometry(30, 295, 128), distantWaterMaterial);
+  const distantWater = new THREE.Mesh(new THREE.RingGeometry(28, 500, 128), distantWaterMaterial);
   distantWater.rotation.x = -Math.PI / 2;
   distantWater.position.y = WATER_LEVEL - .65;
-  distantWater.name = "Sea beyond the pool terrace";
+  distantWater.name = "Open sea horizon";
   scene.add(distantWater);
   const diveWorld = createDiveWorld(scene);
   const shallowFog = new THREE.Color(0x063d4b);
-  const deepFog = new THREE.Color(0x031724);
+  const deepFog = new THREE.Color(0x020b22);
+  const townFog = new THREE.Color(0x39aebb);
   const underwaterBackground = new THREE.Color();
 
   const physics = new BuoyPhysics({ scale: 1.12, x: 2.6, z: 1 });
@@ -444,19 +444,21 @@ export function createOcean(
     const enter = THREE.MathUtils.smoothstep(diveDepth, 0, .8);
     const descend = THREE.MathUtils.smoothstep(diveDepth, .8, 5);
     const cameraY = cameraAtDive(diveDepth, mobile).y;
-    const cameraX = Math.sin(diveDepth * .12) * 2.2 * descend;
-    const cameraZ = THREE.MathUtils.lerp(mobile ? 14 : 12, 7.5 + Math.sin(diveDepth * .08) * 1.5, enter);
+    const arrival = THREE.MathUtils.smoothstep(diveDepth, 880, 1000);
+    const cameraX = Math.sin(diveDepth * .008) * 2.2 * descend * (1 - arrival);
+    const oceanZ = THREE.MathUtils.lerp(mobile ? 14 : 12, 8, enter);
+    const cameraZ = THREE.MathUtils.lerp(oceanZ, mobile ? 40 : 20, arrival);
     camera.position.set(cameraX, cameraY, cameraZ);
-    // During entry the surface remains above the viewer. The gaze gradually
-    // pitches into the shaft, then levels out before reaching its floor.
-    const lookDrop = THREE.MathUtils.lerp(3.0, 35.0, descend);
-    const lookY = Math.max(WATER_LEVEL - 40.8 / METRES_PER_UNIT, cameraY - lookDrop);
+    // A gentle forward descent through open water, widening into the town.
+    const lookDrop = THREE.MathUtils.lerp(THREE.MathUtils.lerp(3, 12, descend), 20, arrival);
+    const townGaze = THREE.MathUtils.smoothstep(diveDepth, 840, 975);
+    const lookY = THREE.MathUtils.lerp(cameraY - lookDrop, WATER_LEVEL - 1007 / METRES_PER_UNIT + 8, townGaze);
     camera.lookAt(
-      THREE.MathUtils.lerp(0, -1.5, enter),
+      0,
       THREE.MathUtils.lerp(-.1, lookY, enter),
-      THREE.MathUtils.lerp(0, THREE.MathUtils.lerp(-14, 0, descend), enter),
+      THREE.MathUtils.lerp(0, THREE.MathUtils.lerp(-32, -42, arrival), enter),
     );
-    const fov = THREE.MathUtils.lerp(60, mobile ? 64 : 54, enter);
+    const fov = THREE.MathUtils.lerp(60, mobile ? 70 : 58, enter);
     if (camera.fov !== fov) {
       camera.fov = fov;
       camera.updateProjectionMatrix();
@@ -471,12 +473,13 @@ export function createOcean(
     uniforms.uBlueprint.value = blueprint ? 1 : 0;
     const underwater = THREE.MathUtils.clamp((WATER_LEVEL - camera.position.y) * 2, 0, 1);
     sky.update(camera, underwater);
-    diveWorld.update(diveDepth, physics.time, blueprint, underwater);
-    underwaterBackground.copy(shallowFog).lerp(deepFog, diveDepth / 40);
+    diveWorld.update(diveDepth, physics.time, blueprint, underwater, camera);
+    const arrival = THREE.MathUtils.smoothstep(diveDepth, 850, 985);
+    underwaterBackground.copy(shallowFog).lerp(deepFog, Math.min(1, diveDepth / 650)).lerp(townFog, arrival);
     scene.background = underwater > 0 ? underwaterBackground : null;
     const fog = scene.fog as THREE.FogExp2;
     fog.color.set(0x9ebbc2).lerp(underwaterBackground, underwater);
-    fog.density = THREE.MathUtils.lerp(.008, .017 + diveDepth * .00023, underwater);
+    fog.density = THREE.MathUtils.lerp(.008, THREE.MathUtils.lerp(.010 + Math.min(diveDepth, 700) * .000006, .0035, arrival), underwater);
     water.visible = underwater < .5;
     distantWater.visible = underwater < .01;
     model.visible = diveDepth < 5;
@@ -655,7 +658,7 @@ export function createOcean(
     },
     setDive(value) {
       if (!Number.isFinite(value)) return;
-      const depth = THREE.MathUtils.clamp(value, 0, 40);
+      const depth = THREE.MathUtils.clamp(value, 0, MAX_DIVE_DEPTH);
       if (depth === diveDepth) return;
       diveDepth = depth;
       if (depth > .15) {
