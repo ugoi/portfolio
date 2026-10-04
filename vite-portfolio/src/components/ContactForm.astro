@@ -1,0 +1,8 @@
+---
+import { formMarkup } from "../contactMarkup";
+---
+<div class="contact-form-area">
+  <h3>Schreib mir.</h3>
+  <Fragment set:html={formMarkup()} />
+  <div id="contact-status" tabindex="-1" role="status" aria-live="polite"></div>
+</div>

@@ -1,3 +1,6 @@
+---
+import "../index.css";
+---
 <!doctype html>
 <html lang="de">
   <head>
@@ -29,8 +32,9 @@
       property="og:image"
       content="https://stefandukic.com/images/stefan-greece.jpeg"
     />
+    <meta name="htmx-config" content='{"selfRequestsOnly":true,"allowEval":false,"allowScriptTags":false,"includeIndicatorStyles":false}' />
     <meta name="twitter:card" content="summary_large_image" />
-    <script type="application/ld+json">
+    <script is:inline type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "Person",
@@ -42,7 +46,6 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <slot />
   </body>
 </html>

@@ -1,0 +1,47 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Arrow from "../components/Arrow.astro";
+import SiteChrome from "../components/SiteChrome.astro";
+import Chapters from "../components/Chapters.astro";
+import Contact from "../components/Contact.astro";
+import { MAX_DIVE_DEPTH } from "../dive";
+---
+<Layout>
+    <div class="site">
+      <a class="skip-link" href="#about">Direkt zum Inhalt</a>
+      <SiteChrome />
+
+      <main class="dive-journey" id="top">
+        <div class="dive-viewport is-fallback">
+          <div class="hero-scene" aria-hidden="true" />
+          <div class="buoy-interaction" />
+          <div class="fallback-world" aria-hidden="true"><div class="fallback-sky" /><div class="fallback-sea" /><div class="fallback-ring" /><div class="fallback-depth" /><div class="fallback-town"><span>🪨</span><span>🗿</span><span>🍍</span></div></div>
+          <div class="scene-atmosphere" aria-hidden="true" />
+          <div class="destination-badge" aria-hidden="true"><span>RUND {MAX_DIVE_DEPTH} M UNTER DEM ALLTAG</span>Bikini Bottom.</div>
+        </div>
+        <div class="journey-content">
+          <section class="surface-section" aria-labelledby="hero-title">
+            <div class="surface-content" >
+              <p class="eyebrow"><span class="fine-line" />WASSER. WEITBLICK. EIN BISSCHEN WAHNSINN.</p>
+              <h1 id="hero-title">In meinem<br /><em>Element.</em></h1>
+              <div class="hero-detail">
+                <p>Bademeister von Beruf.<br />Macher aus Überzeugung.</p>
+                <a class="dive-link" href="#dive-start"><span>Tauch ein</span><span class="arrow-circle"><Arrow down /></span></a>
+              </div>
+            </div>
+            <p class="surface-location"><span>47° N / 8° E</span>ZÜRICH, SCHWEIZ</p>
+            <p class="ring-hint" hidden>Einfach den Ring greifen.<span>Den Rest machen die Wellen.</span></p>
+          </section>
+          <div id="dive-start" class="dive-anchor" aria-hidden="true" />
+          <div class="open-water">
+            <p><span class="eyebrow">UNTER DER OBERFLÄCHE</span>Immer tiefer.<br /><em>Immer neugieriger.</em></p>
+            <span class="descent-line" aria-hidden="true" />
+          </div>
+
+          <Chapters />
+          <Contact />
+        </div>
+      </main>
+    </div>
+<script>import "../scripts/journey"; import "../scripts/contact";</script>
+</Layout>
