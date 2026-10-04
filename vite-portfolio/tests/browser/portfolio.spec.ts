@@ -17,7 +17,8 @@ test('without WebGL the scene is never downloaded; native navigation and depth s
   await page.goto('/'); await expect(page.locator('.scene-controls')).toBeVisible();
   await page.screenshot({ path: info.outputPath('hero-fallback.png') });
   await page.getByRole('link', { name: 'Sag Hallo' }).click();
-  await expect(page.locator('#contact-form')).toBeVisible();
+  await expect(page.locator('.contact-form-area summary')).toBeVisible();
+  await expect(page.locator('#contact-form')).not.toBeVisible();
   await page.evaluate(() => scrollTo({ top: document.body.scrollHeight, behavior: 'instant' }));
   await expect(page.getByRole('meter')).toHaveAttribute('aria-valuenow', '50', { timeout: 20_000 });
   expect(scripts.some(url => /ocean[.-]/.test(url))).toBe(false);
@@ -28,6 +29,7 @@ test('without WebGL the scene is never downloaded; native navigation and depth s
 test('mobile form shows server error inline, keeps text and focuses status', async ({ page }, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/#contact');
+  await page.locator('.contact-form-area summary').click();
   await page.getByLabel('Dein Name', { exact: true }).fill('Browser Test');
   await page.getByLabel('Deine E-Mail', { exact: true }).fill('visitor@example.com');
   await page.getByLabel('Deine Nachricht', { exact: true }).fill('Diese Nachricht wird nicht wirklich versendet.');
@@ -48,6 +50,7 @@ test('HTMX success uses the actual handler with a simulated sender and resets fi
     await route.fulfill({ status: response.status, headers: Object.fromEntries(response.headers), body: await response.text() });
   });
   await page.goto('/#contact');
+  await page.locator('.contact-form-area summary').click();
   await page.getByLabel('Dein Name', { exact: true }).fill('Browser Test');
   await page.getByLabel('Deine E-Mail', { exact: true }).fill('visitor@example.com');
   await page.getByLabel('Deine Nachricht', { exact: true }).fill('Simulierter Versand, keine echte E-Mail.');
@@ -61,6 +64,7 @@ test('content, anchors and POST error recovery work with JavaScript disabled', a
   await page.goto('http://127.0.0.1:4321/');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Element.');
   await page.getByRole('link', { name: 'Sag Hallo' }).click();
+  await page.locator('.contact-form-area summary').click();
   await page.getByLabel('Dein Name', { exact: true }).fill('Ohne JavaScript');
   await page.getByLabel('Deine E-Mail', { exact: true }).fill('visitor@example.com');
   await page.getByLabel('Deine Nachricht', { exact: true }).fill('Diese Nachricht bleibt bei einem Fehler erhalten.');

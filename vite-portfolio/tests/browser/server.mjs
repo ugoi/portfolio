@@ -1,15 +1,15 @@
-// Test-only local server: built static assets and the real contact handler.
+// Test-only local server: built static assets and the built Vercel handler.
 // No mock credentials or sender can be enabled in the production route.
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { resolve, extname } from 'node:path';
-import { handleContact } from '../../src/server/contact.ts';
+import handler from '../../.vercel/output/functions/_render.func/.vercel/output/server/entry.mjs';
 const root = resolve(process.env.STATIC_ROOT || '.vercel/output/static');
 createServer(async (req, res) => {
   try {
     if (req.url === '/api/contact' && req.method === 'POST') {
-      const request = new Request('http://127.0.0.1:4321/api/contact', { method: 'POST', headers: req.headers, body: req, duplex: 'half' });
-      const response = await handleContact(request, null, '127.0.0.1');
+      const request = new Request('http://127.0.0.1:4321/api/contact', { method: 'POST', headers: { ...req.headers, 'x-forwarded-for': '127.0.0.1' }, body: req, duplex: 'half' });
+      const response = await handler.fetch(request);
       res.writeHead(response.status, Object.fromEntries(response.headers)); res.end(await response.text()); return;
     }
     const pathname = new URL(req.url, 'http://localhost').pathname;

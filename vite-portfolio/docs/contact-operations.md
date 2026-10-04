@@ -58,7 +58,8 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Browser tests use built static output and the actual request handler. Their
+Browser tests use built static output and the built Vercel function for the
+unconfigured/error paths. The success test calls the shared request handler. Their
 positive-send case deliberately injects a simulated sender; the production
 route has no mock-mode flag. Negative cases exercise real fail-closed behavior.
 
