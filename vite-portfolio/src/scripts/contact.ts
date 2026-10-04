@@ -25,11 +25,11 @@ form.addEventListener("htmx:afterRequest", (event) => {
   if (detail.xhr.status >= 400 && detail.xhr.getResponseHeader("X-Contact-Response") !== "1") networkError();
 });
 document.addEventListener("htmx:afterSwap", (event) => {
-  if ((event as HtmxEvent).detail.target === status) status.focus({ preventScroll: true });
+  if ((event as HtmxEvent).detail.target === status) status.focus();
 });
 function networkError() {
   status.textContent = "Die Übertragung konnte nicht bestätigt werden. Deine Nachricht bleibt im Formular. Versuche es später erneut oder nutze den E-Mail-Link.";
-  status.focus({ preventScroll: true });
+  status.focus();
 }
 form.addEventListener("htmx:sendError", networkError);
 form.addEventListener("htmx:timeout", networkError);

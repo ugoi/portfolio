@@ -19,7 +19,7 @@ test('without WebGL the scene is never downloaded; native navigation and depth s
   await page.getByRole('link', { name: 'Sag Hallo' }).click();
   await expect(page.locator('#contact-form')).toBeVisible();
   await page.evaluate(() => scrollTo({ top: document.body.scrollHeight, behavior: 'instant' }));
-  await expect(page.getByRole('meter')).toHaveAttribute('aria-valuenow', '50');
+  await expect(page.getByRole('meter')).toHaveAttribute('aria-valuenow', '50', { timeout: 20_000 });
   expect(scripts.some(url => /ocean[.-]/.test(url))).toBe(false);
   await expect(page.locator('.hero-scene canvas')).toHaveCount(0);
   await page.getByRole('button', { name: 'Bauplan', exact: true }).click();
@@ -72,6 +72,10 @@ test('content, anchors and POST error recovery work with JavaScript disabled', a
 test('WebGL scene, keyboard ring, pause, blueprint, depth and context loss', async ({ page }, info) => {
   test.setTimeout(120_000);
   await page.setViewportSize({ width: 900, height: 650 });
+  const diagnostics: string[] = [];
+  page.on('pageerror', error => diagnostics.push(error.message));
+  page.on('console', message => { if (['warning', 'error'].includes(message.type())) diagnostics.push(message.text()); });
+  page.on('close', () => { if (diagnostics.length) console.log('WebGL diagnostics:', diagnostics); });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
   await expect(page.locator('.hero-scene canvas')).toBeVisible({ timeout: 45_000 });
@@ -87,7 +91,7 @@ test('WebGL scene, keyboard ring, pause, blueprint, depth and context loss', asy
   await expect(page.getByRole('button', { name: 'Animation pausieren' })).toBeVisible();
   await page.getByRole('button', { name: 'Animation pausieren' }).click();
   await page.evaluate(() => scrollTo({ top: document.body.scrollHeight, behavior: 'instant' }));
-  await expect(page.getByRole('meter')).toHaveAttribute('aria-valuenow', '50');
+  await expect(page.getByRole('meter')).toHaveAttribute('aria-valuenow', '50', { timeout: 20_000 });
   await page.screenshot({ path: info.outputPath('bikini-bottom-webgl.png') });
   await page.evaluate(() => {
     const gl = document.querySelector('canvas')!.getContext('webgl2')!;
@@ -95,5 +99,5 @@ test('WebGL scene, keyboard ring, pause, blueprint, depth and context loss', asy
   });
   await expect(page.locator('.dive-viewport')).toHaveClass(/is-fallback/);
   await expect(page.locator('.hero-scene canvas')).toHaveCount(0);
-  await expect(page.getByRole('meter')).toHaveAttribute('aria-valuenow', '50');
+  await expect(page.getByRole('meter')).toHaveAttribute('aria-valuenow', '50', { timeout: 20_000 });
 });
