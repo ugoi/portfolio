@@ -6,6 +6,7 @@ import { advanceDiveDepth, cameraAtDive, MAX_DIVE_DEPTH } from "./dive";
 import { TOWN_BASE_DEPTH } from "./waterScale";
 import { oceanFogColor } from "./waterOptics";
 import { createSky } from "./sky";
+import { createOceanGeometry } from "./oceanGeometry";
 import { SKY_GLSL, SUN_DIRECTION } from "./lighting";
 import { METRES_PER_UNIT, WATER_LEVEL, WAVE_GLSL, WAVE_GLSL_CALLS, sampleWater } from "./waves";
 
@@ -201,7 +202,7 @@ export function createOcean(
   // Reflector renders only the scene above the mean water plane into a small
   // target. Its own mesh is hidden during that pass, so water never recurses.
   // This is planar reflection with wave distortion, not ray tracing.
-  const water = new Reflector(new THREE.PlaneGeometry(64, 64, 176, 176), {
+  const water = new Reflector(createOceanGeometry(), {
     textureWidth: 512,
     textureHeight: 512,
     multisample: 0,
@@ -217,6 +218,7 @@ export function createOcean(
         uSunDirection: { value: sunDirection },
       },
       vertexShader: `
+        attribute float aCellWidth;
         uniform float uTime;
         uniform mat4 textureMatrix;
         varying vec3 vWorldPosition;
@@ -225,7 +227,10 @@ export function createOcean(
         varying vec4 vReflection;
         varying float vCrest;
 
-        ${WAVE_GLSL}
+        ${WAVE_GLSL.replace("float amplitude = steepness / k;", `
+          // Remove waves too short for a distant cell, smoothly, before sampling.
+          steepness *= 1.0 - smoothstep(max(.5, wavelength * .22), max(.8, wavelength * .8), aCellWidth);
+          float amplitude = steepness / k;`)}
 
         void main() {
           vec3 p = position;
@@ -322,49 +327,6 @@ export function createOcean(
   scene.add(water);
   const waterMaterial = water.material as THREE.ShaderMaterial;
   const uniforms = waterMaterial.uniforms;
-  // Open sea continues beyond the detailed foreground wave patch.
-  const distantWaterMaterial = new THREE.ShaderMaterial({
-    uniforms: {
-      uTime: uniforms.uTime,
-      uBlueprint: uniforms.uBlueprint,
-      uSunDirection: { value: sunDirection },
-    },
-    vertexShader: `
-      varying vec3 vWorld;
-      void main() {
-        vec4 world = modelMatrix * vec4(position, 1.0);
-        vWorld = world.xyz;
-        gl_Position = projectionMatrix * viewMatrix * world;
-      }`,
-    fragmentShader: `
-      uniform float uTime, uBlueprint;
-      varying vec3 vWorld;
-      ${SKY_GLSL}
-      void main() {
-        vec3 viewDirection = normalize(cameraPosition - vWorld);
-        float distanceToEye = length(cameraPosition - vWorld);
-        float detail = exp(-distanceToEye * .006);
-        vec3 n = normalize(vec3(
-          sin(vWorld.x * 1.1 + vWorld.z * .72 - uTime) * .045 * detail,
-          1.0,
-          cos(vWorld.z * 1.6 - vWorld.x * .26 - uTime * .7) * .04 * detail));
-        float fresnel = .0204 + .9796 * pow(1.0 - max(dot(n, viewDirection), 0.0), 5.0);
-        vec3 color = mix(vec3(.01, .095, .13), daylightSky(reflect(-viewDirection, n)), fresnel);
-        float sunlight = pow(max(dot(n, normalize(viewDirection + uSunDirection)), 0.0), 260.0);
-        color += vec3(1.0, .78, .43) * sunlight;
-        float mist = 1.0 - exp(-distanceToEye * .003);
-        color = mix(color, daylightSky(vec3(0.0, .01, -1.0)), mist * .66);
-        color = mix(color, vec3(.018, .067, .1), uBlueprint);
-        gl_FragColor = vec4(color, 1.0);
-        #include <tonemapping_fragment>
-        #include <colorspace_fragment>
-      }`,
-  });
-  const distantWater = new THREE.Mesh(new THREE.RingGeometry(28, 500, 128), distantWaterMaterial);
-  distantWater.rotation.x = -Math.PI / 2;
-  distantWater.position.y = WATER_LEVEL - .65;
-  distantWater.name = "Open sea horizon";
-  scene.add(distantWater);
   const diveWorld = createDiveWorld(scene);
   const underwaterBackground = new THREE.Color();
 
@@ -481,7 +443,6 @@ export function createOcean(
     fog.color.set(0x9ebbc2).lerp(underwaterBackground, underwater);
     fog.density = .008;
     water.visible = underwater < .5;
-    distantWater.visible = underwater < .01;
     interaction.hidden = targetDiveDepth > .15 || diveDepth > .15 || !contextAvailable;
     renderer.render(scene, camera);
     updateHitArea();
@@ -713,7 +674,6 @@ export function createOcean(
       geometries.forEach((g) => g.dispose());
       materials.forEach((m) => m.dispose());
       water.dispose();
-      distantWaterMaterial.dispose();
       labelMaterial.dispose();
       labelTexture.dispose();
       orbitMaterial.dispose();

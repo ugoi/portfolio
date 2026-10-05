@@ -79,8 +79,23 @@ acceptance **and the actual intended inbox**, then review the preview. Verify
 native POST without JavaScript, keyboard focus and inline errors on that preview.
 A successful local build or mock test does not finish mail setup.
 
-Production remains on the current deployment until Stefan reviews the preview.
+Stefan explicitly authorized production publication on 2026-10-05 (STE-37).
+Configure the same five server secrets for Production before merging the release;
+the existing dedicated Redis database separates production and preview state.
+Verify the deployed source and a controlled submission on the public domain,
+including actual inbox receipt, after deployment.
 Previous application baseline: `5304943ea33b0afa7407b61118f12793fba1adad`.
 Existing production deployment (verified from GitHub's Vercel status):
 https://vercel.com/ugois-projects/portfolio/J4cijAoQPSdQcLFLTUGsexMbYdka
 Rollback by promoting that known deployment (reconfirm before release).
+
+## Presentation update (2026-10-05)
+
+Stefan requested a plain name wordmark, aligned contact button and removal of the
+blueprint selector. The ocean now uses a single adaptive surface from the buoy to
+the horizon, replacing the separate lowered background plane. The capability-gated
+scene import starts immediately. Small desktop/mobile WebP frames from that exact
+scene bridge network/shader startup and crossfade into the rendered scene; they
+also provide the no-WebGL/no-JavaScript view. Reduced motion and context-loss
+recovery remain supported. These frames are not a claim of instantaneous network
+loading or a GPU/frame-rate benchmark.

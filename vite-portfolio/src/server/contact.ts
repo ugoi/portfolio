@@ -78,7 +78,9 @@ export async function handleContact(request: Request, services: ContactServices 
     reserved = true;
     await services.send(fields, id);
     // A state-store outage after provider acceptance must not turn success into a retry loop.
-    await services.complete(id).catch(() => {});
+    await services.complete(id).catch(() => {
+      console.error("Contact delivery accepted but completion state could not be saved.");
+    });
     return result(request, 200, "Deine Nachricht wurde zum Versand angenommen. Danke, dass du dich meldest!", fields, true);
   } catch {
     if (reserved) await services.release(id).catch(() => {});

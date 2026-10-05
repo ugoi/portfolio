@@ -15,7 +15,13 @@ import { MAX_DIVE_DEPTH } from "../dive";
         <div class="dive-viewport is-fallback">
           <div class="hero-scene" aria-hidden="true" />
           <div class="buoy-interaction" />
-          <div class="fallback-world" aria-hidden="true"><div class="fallback-sky" /><div class="fallback-sea" /><div class="fallback-ring" /><div class="fallback-depth" /><div class="fallback-town"><span>🪨</span><span>🗿</span><span>🍍</span></div></div>
+          <div class="fallback-world" aria-hidden="true">
+            <picture class="ocean-poster">
+              <source media="(max-width: 600px)" srcset="/images/ocean-start-mobile.webp" />
+              <img src="/images/ocean-start.webp" width="960" height="600" alt="" loading="eager" fetchpriority="high" />
+            </picture>
+            <div class="fallback-depth" /><div class="fallback-town" />
+          </div>
           <div class="scene-atmosphere" aria-hidden="true" />
           <div class="destination-badge" aria-hidden="true"><span>RUND {MAX_DIVE_DEPTH} M UNTER DEM ALLTAG</span>Bikini Bottom.</div>
         </div>

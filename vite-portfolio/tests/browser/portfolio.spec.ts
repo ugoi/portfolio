@@ -14,7 +14,8 @@ test.beforeEach(async ({ page }, info) => {
 
 test('without WebGL the scene is never downloaded; native navigation and depth still work', async ({ page }, info) => {
   const scripts: string[] = []; page.on('request', r => { if (r.resourceType() === 'script') scripts.push(r.url()); });
-  await page.goto('/'); await expect(page.locator('.scene-controls')).toBeVisible();
+  await page.goto('/'); await expect(page.locator('.motion-button')).toBeHidden();
+  await expect.poll(() => page.locator('.ocean-poster img').evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
   await page.screenshot({ path: info.outputPath('hero-fallback.png') });
   await page.getByRole('link', { name: 'Sag Hallo' }).click();
   await expect(page.locator('.contact-form-area summary')).toBeVisible();
@@ -23,8 +24,7 @@ test('without WebGL the scene is never downloaded; native navigation and depth s
   await expect(page.getByRole('meter')).toHaveAttribute('aria-valuenow', '50', { timeout: 20_000 });
   expect(scripts.some(url => /ocean[.-]/.test(url))).toBe(false);
   await expect(page.locator('.hero-scene canvas')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Bauplan', exact: true }).click();
-  await expect(page.locator('.site')).toHaveClass(/is-blueprint/);
+  await expect(page.getByRole('button', { name: 'Bauplan', exact: true })).toHaveCount(0);
 });
 test('mobile form shows server error inline, keeps text and focuses status', async ({ page }, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -73,7 +73,7 @@ test('content, anchors and POST error recovery work with JavaScript disabled', a
   await expect(page.getByLabel('Deine Nachricht', { exact: true })).toHaveValue('Diese Nachricht bleibt bei einem Fehler erhalten.');
   await context.close();
 });
-test('WebGL scene, keyboard ring, pause, blueprint, depth and context loss', async ({ page }, info) => {
+test('WebGL scene, keyboard ring, pause, depth and context loss', async ({ page }, info) => {
   test.setTimeout(120_000);
   await page.setViewportSize({ width: 900, height: 650 });
   const diagnostics: string[] = [];
@@ -81,19 +81,32 @@ test('WebGL scene, keyboard ring, pause, blueprint, depth and context loss', asy
   page.on('console', message => { if (['warning', 'error'].includes(message.type())) diagnostics.push(message.text()); });
   page.on('close', () => { if (diagnostics.length) console.log('WebGL diagnostics:', diagnostics); });
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/');
+  let releaseScene!: () => void;
+  const sceneGate = new Promise<void>(resolve => { releaseScene = resolve; });
+  await page.route('**/ocean.*.js', async route => { await sceneGate; await route.continue(); });
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  // A slow connection displays an actual frame of this ocean, without blocking content.
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await expect(page.locator('.hero-scene canvas')).toHaveCount(0);
+  await expect.poll(() => page.locator('.ocean-poster img').evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
+  await page.screenshot({ path: info.outputPath('hero-loading.png') });
+  releaseScene();
   await expect(page.locator('.hero-scene canvas')).toBeVisible({ timeout: 45_000 });
+  await expect(page.locator('.dive-viewport')).toHaveClass(/scene-ready/);
   await expect(page.getByRole('button', { name: 'Animation starten' })).toBeVisible();
   const ring = page.getByRole('button', { name: /Rettungsring bewegen/ });
   await ring.focus(); await page.keyboard.press('ArrowRight'); await page.keyboard.press('r');
   await expect(ring).toBeFocused();
   await page.screenshot({ path: info.outputPath('hero-webgl.png') });
-  await page.getByRole('button', { name: 'Bauplan', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Bauplan', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await page.getByRole('button', { name: 'Wasser', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Bauplan', exact: true })).toHaveCount(0);
+  const horizon = { x: 430, y: 190, width: 350, height: 50 };
+  const before = await page.screenshot({ clip: horizon });
   await page.getByRole('button', { name: 'Animation starten' }).click();
   await expect(page.getByRole('button', { name: 'Animation pausieren' })).toBeVisible();
+  await page.waitForTimeout(800);
   await page.getByRole('button', { name: 'Animation pausieren' }).click();
+  const after = await page.screenshot({ clip: horizon });
+  expect(before.equals(after), 'distant water changes with the same running scene').toBe(false);
   await page.evaluate(() => scrollTo({ top: document.body.scrollHeight, behavior: 'instant' }));
   await expect(page.getByRole('meter')).toHaveAttribute('aria-valuenow', '50', { timeout: 20_000 });
   await page.screenshot({ path: info.outputPath('bikini-bottom-webgl.png') });
@@ -104,4 +117,5 @@ test('WebGL scene, keyboard ring, pause, blueprint, depth and context loss', asy
   await expect(page.locator('.dive-viewport')).toHaveClass(/is-fallback/);
   await expect(page.locator('.hero-scene canvas')).toHaveCount(0);
   await expect(page.getByRole('meter')).toHaveAttribute('aria-valuenow', '50', { timeout: 20_000 });
+  expect(diagnostics.filter(message => /Shader Error|VALIDATE_STATUS|Uncaught|TypeError/.test(message))).toEqual([]);
 });

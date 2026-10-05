@@ -20,7 +20,6 @@ const media = matchMedia("(prefers-reduced-motion: reduce)");
 const listeners = new AbortController();
 let controller: OceanController | null = null;
 let disposed = false;
-let blueprint = false;
 let paused: boolean | null = null;
 let frame = 0;
 let previousDepth = -1;
@@ -52,12 +51,14 @@ function update() {
 function schedule() { if (!disposed && !frame) frame = requestAnimationFrame(update); }
 function syncPause() {
   const stopped = paused ?? media.matches;
-  pause.textContent = stopped ? "▶" : "Ⅱ";
+  select("[data-motion-icon]").textContent = stopped ? "▶" : "Ⅱ";
+  select("[data-motion-label]").textContent = stopped ? "Animation" : "Pause";
   pause.setAttribute("aria-label", stopped ? "Animation starten" : "Animation pausieren");
   controller?.setPaused(paused);
 }
 function unavailable() {
   fallback.hidden = false;
+  viewport.classList.remove("scene-ready");
   viewport.classList.add("is-fallback");
   pause.hidden = true;
   hint.hidden = true;
@@ -78,9 +79,8 @@ async function startScene() {
     const { createOcean } = await import("../ocean");
     if (disposed) return;
     controller = createOcean(scene, interaction, unavailable, showDepth);
-    controller.setBlueprint(blueprint);
     syncPause();
-    fallback.hidden = true;
+    viewport.classList.add("scene-ready");
     viewport.classList.remove("is-fallback");
     pause.hidden = false;
     hint.hidden = false;
@@ -89,18 +89,6 @@ async function startScene() {
 }
 
 select(".scene-controls").hidden = false;
-for (const button of document.querySelectorAll<HTMLButtonElement>("[data-blueprint]")) {
-  button.addEventListener("click", () => {
-    blueprint = button.dataset.blueprint === "true";
-    site.classList.toggle("is-blueprint", blueprint);
-    for (const control of document.querySelectorAll<HTMLButtonElement>("[data-blueprint]")) {
-      const active = (control.dataset.blueprint === "true") === blueprint;
-      control.classList.toggle("selected", active);
-      control.setAttribute("aria-pressed", String(active));
-    }
-    controller?.setBlueprint(blueprint);
-  }, { signal: listeners.signal });
-}
 pause.addEventListener("click", () => { paused = !(paused ?? media.matches); syncPause(); }, { signal: listeners.signal });
 media.addEventListener("change", syncPause, { signal: listeners.signal });
 const observer = new ResizeObserver(schedule);
@@ -119,8 +107,8 @@ window.addEventListener("pagehide", (event) => {
 }, { signal: listeners.signal });
 window.addEventListener("pageshow", () => { syncPause(); schedule(); }, { signal: listeners.signal });
 update();
-// Give static content a paint before probing and importing the 3D world.
-requestAnimationFrame(() => requestAnimationFrame(() => { void startScene(); }));
+// Start the capability-gated download immediately; no deliberate paint delay.
+void startScene();
 
 // Retire only the site's former cache-first service worker.
 if ("serviceWorker" in navigator) {
