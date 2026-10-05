@@ -23,9 +23,18 @@ preview keys are namespaced separately using `VERCEL_ENV`. Do not add a paid pla
 without Stefan's decision. Verify the sender subdomain using provider-supplied
 DNS records; do not replace the website's DNS routes or existing MX records.
 
-The Resend connection card on STE-37 is still pending. No live API key, verified
-sender, shared Redis service or actual inbox delivery is claimed by this branch.
-A connected management tool is not itself a deployed runtime sending key.
+Preview configuration was completed on 2026-10-05 using the existing authenticated
+Resend account and verified sender domain. A separate sending-only key is scoped
+to that domain. The dedicated Upstash database uses the Free plan; all five Vercel
+values are Secrets restricted to Preview. Recovery values are in Vaultwarden.
+The optional Paperclip Resend MCP connection is not required for runtime sending.
+
+A controlled submission reached the intended Gmail inbox, with matching content,
+Reply-To and passing SPF/DKIM/DMARC. The live cross-transport retry test exposed
+a newline mismatch: native forms encode CRLF while HTMX sends LF. The handler now
+normalizes message line endings before validation, hashing and provider delivery;
+a regression test covers both CRLF and CR retries. Keep provider acceptance,
+actual inbox receipt and repeat suppression as separate release checks.
 
 ## Abuse protection and retries
 
@@ -41,7 +50,8 @@ expire in 24 hours. Redis stores only keyed hashes and counts, never addresses,
 IP strings or content. Availability failures stop sending rather than bypassing
 limits. IP comes from the hosting adapter, not a parsed visitor header.
 
-The same exact name/email/message uses a stable Resend idempotency key. Retrying
+The same name/email/message, with normalized message line endings, uses a stable
+Resend idempotency key. Retrying
 an uncertain provider result cannot duplicate a send within the provider's
 24-hour window. A provider acceptance is reported as *accepted for sending*, not
 proof of inbox arrival. There is no automatic visitor confirmation email.

@@ -27,6 +27,18 @@ test('native POST sends once and preserves a fixed success response on repeat', 
   }
   assert.equal(count(), 1);
 });
+test('HTMX and native form line endings identify the same multiline submission', async () => {
+  const { services, count } = fixture();
+  const message = 'Erste Zeile der Nachricht.\nZweite Zeile der Nachricht.';
+  const first = await handleContact(request({ ...fields, message }, { 'HX-Request': 'true' }), services, 'a');
+  assert.equal(first.status, 200);
+  for (const separator of ['\r\n', '\r']) {
+    const repeat = await handleContact(request({ ...fields, message: message.replaceAll('\n', separator) }), services, 'a');
+    assert.equal(repeat.status, 200);
+    assert.match(await repeat.text(), /bereits zum Versand angenommen/);
+  }
+  assert.equal(count(), 1);
+});
 test('concurrent duplicate remains pending while first provider call is in flight', async () => {
   const { services } = fixture(); let release;
   services.send = () => new Promise(resolve => { release = resolve; });

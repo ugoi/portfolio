@@ -56,6 +56,9 @@ export async function handleContact(request: Request, services: ContactServices 
     if (params.getAll(key).length > 1) return result(request, 400, "Ein Formularfeld wurde mehrfach übertragen.");
     fields[key] = (params.get(key) ?? "").trim();
   }
+  // Native HTML forms encode textarea newlines as CRLF; HTMX can send LF.
+  // Normalize before validation, hashing and delivery so retries remain identical.
+  fields.message = fields.message.replace(/\r\n?/g, "\n");
   // Silently discard bot submissions. Never call the provider or create a relay.
   if (fields.website) return result(request, 200, "Danke für deine Anfrage.");
   /* eslint-disable no-control-regex -- explicitly reject control bytes in visitor input */
