@@ -1,7 +1,7 @@
 # Stefan Dukic — In meinem Element
 
-Personal website combining water, hands-on work and technology. Built with React,
-TypeScript, Vite, static prerendering and a custom Three.js ocean / mechanical ring.
+Personal website combining water, hands-on work and technology. Built with Astro,
+TypeScript, static HTML, HTMX and the original Three.js ocean / mechanical ring.
 The original portfolio is preserved in Git history.
 
 ## Development
@@ -11,15 +11,19 @@ npm ci
 npm run dev
 npm run build
 npm run lint
-npm run preview -- --host 127.0.0.1 --port 5186
+npm test
+npm run test:browser
 ```
 
-Production output: `dist/`. The existing Vercel project uses this directory
-(`vite-portfolio`) as its root. No runtime secrets or backend are required.
+The existing Vercel project uses `vite-portfolio` as its root. The official Astro
+adapter emits Vercel Build Output to `.vercel/output/`, including static HTML and
+the `/api/contact` function. See [contact operation](docs/contact-operations.md) for
+required secrets, shared limits and the outstanding live-mail acceptance steps.
 
 ## Behavior
 
-- Procedural 3D scene loads independently of the static page content.
+- WebGL 2 is checked before importing the 3D package, after the first content paint.
+- Static content does not hydrate React. Form POST works without JavaScript.
 - Ozean / Bauplan switches the real scene between shaded and wireframe modes.
 - Animation respects reduced-motion settings, can be paused, and stops when the
   hero leaves the viewport or the tab is hidden. Rendering is capped at about 30 fps.
@@ -47,7 +51,7 @@ Native web search and Brave Search were used. A bounded Brave Research pass was
 also attempted; it returned search leads but no final answer within its limits.
 No reference artwork, model or proprietary source code was copied.
 
-## Verification (2026-09-18)
+## Historical verification (2026-09-18, previous React version)
 
 Production build and ESLint pass. Desktop and 390 px mobile screenshots inspected.
 The personal browser has WebGL disabled, so its CSS fallback was checked there;
@@ -65,7 +69,7 @@ without router Link components, remote loader data or a live SSR backend.
 
 Vercel project: `ugois-projects/portfolio`. Cloudflare fronts the domain.
 The redesign does not require DNS changes. The prior main commit is
-`204138db52b6acc615c14fdef05867e6608f7b81`.
+`5304943ea33b0afa7407b61118f12793fba1adad`.
 Deploy the reviewed branch as a Vercel preview; production can then use the same
 build. Roll back by promoting the previous successful Vercel deployment, or by
 reverting the redesign commit and allowing the existing Git integration to build.
