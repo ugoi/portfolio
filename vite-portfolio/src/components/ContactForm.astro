@@ -1,8 +1,8 @@
 ---
 import { formMarkup } from "../contactMarkup";
 ---
-<details class="contact-form-area">
-  <summary>Nachricht schreiben <span aria-hidden="true">↗</span></summary>
+<div class="contact-form-area">
   <Fragment set:html={formMarkup()} />
   <div id="contact-status" tabindex="-1" role="status" aria-live="polite"></div>
-</details>
+  <button class="contact-again" type="button" hidden>Weitere Nachricht schreiben</button>
+</div>

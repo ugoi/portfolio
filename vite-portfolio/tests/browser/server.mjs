@@ -13,7 +13,7 @@ createServer(async (req, res) => {
       res.writeHead(response.status, Object.fromEntries(response.headers)); res.end(await response.text()); return;
     }
     const pathname = new URL(req.url, 'http://localhost').pathname;
-    const path = resolve(root, '.' + (pathname === '/' ? '/index.html' : pathname));
+    const path = resolve(root, '.' + (pathname === '/' ? '/index.html' : pathname === '/kontakt' || pathname === '/kontakt/' ? '/kontakt/index.html' : pathname));
     if (!path.startsWith(root + '/')) { res.writeHead(403).end(); return; }
     const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.woff2': 'font/woff2', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
     const body = await readFile(path);

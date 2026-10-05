@@ -1,0 +1,19 @@
+---
+import Layout from "../layouts/Layout.astro";
+import ContactForm from "../components/ContactForm.astro";
+---
+<Layout title="Kontakt — Stefan Dukic" canonical="https://stefandukic.com/kontakt">
+  <main class="contact-page">
+    <a class="contact-back" href="/">← Zurück zum Meer</a>
+    <section class="contact-card" aria-labelledby="contact-page-title">
+      <div class="contact-heading">
+        <p class="contact-kicker">DIREKT AN STEFAN</p>
+        <h1 id="contact-page-title">Sag <em>Hallo.</em></h1>
+        <p>Eine Idee, eine Frage oder einfach ein Gruss?</p>
+      </div>
+      <ContactForm />
+      <p class="contact-alternative">Lieber per E-Mail? <a href="mailto:codecraftingpro@gmail.com">codecraftingpro@gmail.com <span aria-hidden="true">↗</span></a></p>
+    </section>
+  </main>
+  <script>import "../scripts/contact";</script>
+</Layout>

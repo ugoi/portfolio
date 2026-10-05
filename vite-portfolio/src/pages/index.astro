@@ -3,6 +3,7 @@ import Layout from "../layouts/Layout.astro";
 import Arrow from "../components/Arrow.astro";
 import SiteChrome from "../components/SiteChrome.astro";
 import Chapters from "../components/Chapters.astro";
+import ContactDialog from "../components/ContactDialog.astro";
 import Contact from "../components/Contact.astro";
 import { MAX_DIVE_DEPTH } from "../dive";
 ---
@@ -49,5 +50,6 @@ import { MAX_DIVE_DEPTH } from "../dive";
         </div>
       </main>
     </div>
+<ContactDialog />
 <script>import "../scripts/journey"; import "../scripts/contact";</script>
 </Layout>
