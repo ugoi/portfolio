@@ -1,0 +1,17 @@
+---
+import ContactForm from "./ContactForm.astro";
+---
+<dialog class="contact-dialog" aria-labelledby="dialog-title" aria-describedby="dialog-intro">
+  <button class="contact-close" type="button" aria-label="Kontaktfenster schliessen">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
+  </button>
+  <div class="contact-heading">
+    <p class="contact-kicker">DIREKT AN STEFAN</p>
+    <h2 id="dialog-title" tabindex="-1" autofocus>Sag <em>Hallo.</em></h2>
+    <p id="dialog-intro">Eine Idee, eine Frage oder einfach ein Gruss?</p>
+  </div>
+  <div class="contact-dialog-body">
+  <ContactForm />
+  <p class="contact-alternative">Lieber per E-Mail? <a href="mailto:codecraftingpro@gmail.com">codecraftingpro@gmail.com <span aria-hidden="true">↗</span></a></p>
+  </div>
+</dialog>

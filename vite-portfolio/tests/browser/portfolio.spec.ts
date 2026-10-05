@@ -18,8 +18,10 @@ test('without WebGL the scene is never downloaded; native navigation and depth s
   await expect.poll(() => page.locator('.ocean-poster img').evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
   await page.screenshot({ path: info.outputPath('hero-fallback.png') });
   await page.getByRole('link', { name: 'Sag Hallo' }).click();
-  await expect(page.locator('.contact-form-area summary')).toBeVisible();
-  await expect(page.locator('#contact-form')).not.toBeVisible();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  expect(await page.evaluate(() => scrollY)).toBe(0);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('link', { name: 'Sag Hallo' })).toBeFocused();
   await page.evaluate(() => scrollTo({ top: document.body.scrollHeight, behavior: 'instant' }));
   await expect(page.getByRole('meter')).toHaveAttribute('aria-valuenow', '50', { timeout: 20_000 });
   expect(scripts.some(url => /ocean[.-]/.test(url))).toBe(false);
@@ -28,8 +30,8 @@ test('without WebGL the scene is never downloaded; native navigation and depth s
 });
 test('mobile form shows server error inline, keeps text and focuses status', async ({ page }, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/#contact');
-  await page.locator('.contact-form-area summary').click();
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Sag Hallo' }).click();
   await page.getByLabel('Dein Name', { exact: true }).fill('Browser Test');
   await page.getByLabel('Deine E-Mail', { exact: true }).fill('visitor@example.com');
   await page.getByLabel('Deine Nachricht', { exact: true }).fill('Diese Nachricht wird nicht wirklich versendet.');
@@ -38,10 +40,16 @@ test('mobile form shows server error inline, keeps text and focuses status', asy
   await expect(page.locator('#contact-status')).toBeFocused();
   await expect(page.getByLabel('Deine Nachricht', { exact: true })).toHaveValue('Diese Nachricht wird nicht wirklich versendet.');
   expect(new URL(page.url()).pathname).toBe('/');
+  expect(await page.evaluate(() => scrollY)).toBe(0);
+  const dialogBox = await page.getByRole('dialog').boundingBox();
+  expect(dialogBox!.x).toBeGreaterThanOrEqual(0);
+  expect(dialogBox!.y).toBeGreaterThanOrEqual(0);
+  expect(dialogBox!.height).toBeLessThanOrEqual(844);
+  await expect(page.getByRole('button', { name: 'Kontaktfenster schliessen' })).toBeInViewport();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: info.outputPath('contact-mobile.png') });
 });
-test('HTMX success uses the actual handler with a simulated sender and resets fields', async ({ page }) => {
+test('HTMX success uses the actual handler with a simulated sender and resets fields', async ({ page }, info) => {
   let sent = 0;
   const services: ContactServices = { hash: value => value, reserve: async () => 'reserved', complete: async () => {}, release: async () => {}, send: async () => { sent++; } };
   await page.route('**/api/contact', async route => {
@@ -49,8 +57,8 @@ test('HTMX success uses the actual handler with a simulated sender and resets fi
     const response = await handleContact(new Request(r.url(), { method: 'POST', headers: r.headers(), body: r.postData() }), services, '127.0.0.1');
     await route.fulfill({ status: response.status, headers: Object.fromEntries(response.headers), body: await response.text() });
   });
-  await page.goto('/#contact');
-  await page.locator('.contact-form-area summary').click();
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Sag Hallo' }).click();
   await page.getByLabel('Dein Name', { exact: true }).fill('Browser Test');
   await page.getByLabel('Deine E-Mail', { exact: true }).fill('visitor@example.com');
   await page.getByLabel('Deine Nachricht', { exact: true }).fill('Simulierter Versand, keine echte E-Mail.');
@@ -58,13 +66,18 @@ test('HTMX success uses the actual handler with a simulated sender and resets fi
   await expect(page.locator('#contact-status')).toContainText('zum Versand angenommen');
   await expect(page.getByLabel('Deine Nachricht', { exact: true })).toHaveValue('');
   expect(sent).toBe(1);
+  await expect(page.locator('#contact-form')).toBeHidden();
+  await page.screenshot({ path: info.outputPath('contact-success.png') });
+  await page.getByRole('button', { name: 'Weitere Nachricht schreiben' }).click();
+  await expect(page.getByLabel('Dein Name', { exact: true })).toBeFocused();
+  await expect(page.locator('#contact-status')).toBeEmpty();
 });
 test('content, anchors and POST error recovery work with JavaScript disabled', async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false }); const page = await context.newPage();
   await page.goto('http://127.0.0.1:4321/');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Element.');
   await page.getByRole('link', { name: 'Sag Hallo' }).click();
-  await page.locator('.contact-form-area summary').click();
+  await expect(page).toHaveURL('http://127.0.0.1:4321/kontakt');
   await page.getByLabel('Dein Name', { exact: true }).fill('Ohne JavaScript');
   await page.getByLabel('Deine E-Mail', { exact: true }).fill('visitor@example.com');
   await page.getByLabel('Deine Nachricht', { exact: true }).fill('Diese Nachricht bleibt bei einem Fehler erhalten.');
@@ -72,6 +85,57 @@ test('content, anchors and POST error recovery work with JavaScript disabled', a
   await expect(page.getByRole('heading', { level: 1 })).toContainText('noch nicht versendet');
   await expect(page.getByLabel('Deine Nachricht', { exact: true })).toHaveValue('Diese Nachricht bleibt bei einem Fehler erhalten.');
   await context.close();
+});
+test('dialog keeps the current depth, traps focus and preserves a draft across closing', async ({ page }, info) => {
+  await page.goto('/');
+  await page.evaluate(() => scrollTo({ top: document.body.scrollHeight, behavior: 'instant' }));
+  await expect(page.getByRole('meter')).toHaveAttribute('aria-valuenow', '50', { timeout: 20_000 });
+  const initialY = await page.evaluate(() => scrollY);
+  const trigger = page.getByRole('link', { name: 'Sag Hallo' });
+  await trigger.click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.getByLabel('Deine Nachricht', { exact: true }).fill('Entwurf bleibt beim Schliessen erhalten.');
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Nachricht senden' })).toBeFocused();
+  for (let i = 0; i < 8; i++) {
+    await page.keyboard.press('Tab');
+    expect(await page.evaluate(() => !!document.activeElement?.closest('dialog'))).toBe(true);
+  }
+  await page.mouse.wheel(0, 600);
+  expect(await page.evaluate(() => scrollY)).toBe(initialY);
+  await page.keyboard.press('Escape');
+  await expect(trigger).toBeFocused();
+  expect(await page.evaluate(() => scrollY)).toBe(initialY);
+  await trigger.click();
+  await expect(page.getByLabel('Deine Nachricht', { exact: true })).toHaveValue('Entwurf bleibt beim Schliessen erhalten.');
+  await page.screenshot({ path: info.outputPath('contact-desktop.png') });
+  await page.getByRole('button', { name: 'Kontaktfenster schliessen' }).click();
+  await expect(page.getByRole('dialog')).toBeHidden();
+  expect(await page.evaluate(() => scrollY)).toBe(initialY);
+});
+test('closing during a request keeps the response without stealing page focus', async ({ page }) => {
+  let release!: () => void;
+  const responseGate = new Promise<void>(resolve => { release = resolve; });
+  await page.route('**/api/contact', async route => {
+    await responseGate;
+    await route.fulfill({ status: 503, headers: { 'Content-Type': 'text/html', 'X-Contact-Response': '1', 'X-Contact-Sent': '0' }, body: '<p>Testfehler: bitte erneut versuchen.</p>' });
+  });
+  await page.goto('/');
+  const trigger = page.getByRole('link', { name: 'Sag Hallo' });
+  await trigger.click();
+  await page.getByLabel('Dein Name', { exact: true }).fill('Test');
+  await page.getByLabel('Deine E-Mail', { exact: true }).fill('visitor@example.com');
+  await page.getByLabel('Deine Nachricht', { exact: true }).fill('Dieser Entwurf soll erhalten bleiben.');
+  await page.getByRole('button', { name: 'Nachricht senden' }).click();
+  await expect(page.getByRole('button', { name: 'Nachricht senden' })).toBeDisabled();
+  await page.keyboard.press('Escape');
+  release();
+  await expect(page.locator('#contact-status')).toContainText('Testfehler');
+  await expect(trigger).toBeFocused();
+  expect(await page.evaluate(() => scrollY)).toBe(0);
+  await trigger.click();
+  await expect(page.locator('#contact-status')).toBeVisible();
+  await expect(page.getByLabel('Deine Nachricht', { exact: true })).toHaveValue('Dieser Entwurf soll erhalten bleiben.');
 });
 test('WebGL scene, keyboard ring, pause, depth and context loss', async ({ page }, info) => {
   test.setTimeout(120_000);

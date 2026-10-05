@@ -1,5 +1,6 @@
 ---
 import "../index.css";
+const { title = "Stefan Dukic — In meinem Element", canonical = "https://stefandukic.com/" } = Astro.props;
 ---
 <!doctype html>
 <html lang="de">
@@ -7,13 +8,13 @@ import "../index.css";
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#061924" />
-    <title>Stefan Dukic — In meinem Element</title>
+    <title>{title}</title>
     <meta
       name="description"
       content="Wasser im Blut. Technik im Kopf. Stefan Dukic — Bademeister, Macher und neugieriger Kopf aus Zürich."
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="canonical" href="https://stefandukic.com/" />
+    <link rel="canonical" href={canonical} />
     <link
       rel="preload"
       href="/fonts/space-grotesk-latin.woff2"

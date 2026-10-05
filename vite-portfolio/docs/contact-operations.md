@@ -26,7 +26,9 @@ DNS records; do not replace the website's DNS routes or existing MX records.
 Preview configuration was completed on 2026-10-05 using the existing authenticated
 Resend account and verified sender domain. A separate sending-only key is scoped
 to that domain. The dedicated Upstash database uses the Free plan; all five Vercel
-values are Secrets restricted to Preview. Recovery values are in Vaultwarden.
+values were initially Secrets restricted to Preview. They were subsequently
+configured separately for Production before the authorized release. Recovery
+values are in Vaultwarden.
 The optional Paperclip Resend MCP connection is not required for runtime sending.
 
 A controlled submission reached the intended Gmail inbox, with matching content,
@@ -99,3 +101,25 @@ scene bridge network/shader startup and crossfade into the rendered scene; they
 also provide the no-WebGL/no-JavaScript view. Reduced motion and context-loss
 recovery remain supported. These frames are not a claim of instantaneous network
 loading or a GPU/frame-rate benchmark.
+
+## Contact dialog and recipient check (2026-10-05)
+
+The navigation and bottom contact heading open a native modal dialog directly,
+without changing the underlying scroll/depth. Escape, the close button or a full
+backdrop click close it; focus returns to the trigger. Drafts survive closing.
+The dialog confines focus, locks page scrolling and scrolls only its own contents
+for a response. Reduced motion is respected. Without JavaScript, the same links
+open `/kontakt`, which serves the same native POST form. The response page retains
+inputs on failure. No component library or third-party form host is involved.
+
+Production secrets are configured separately for Production and Preview. The
+fixed notification mailbox is **codecraftingpro@gmail.com**, not the other
+configured Gmail account stefandukic209@gmail.com. A visitor's email is Reply-To,
+not the delivery recipient, and no visitor acknowledgement is sent. Stefan's
+reported missing test was independently found in the intended inbox at
+2026-10-05 11:23:24 UTC (IMAP UID 381), with passing SPF/DKIM/DMARC. This distinction
+must be made explicit when diagnosing notifications; provider acceptance alone
+is not proof of arrival.
+
+Current rollback baseline before the dialog release: `b9a73b65feb7aae5fea7f2a94fda3e8217ebdcfe`,
+Vercel deployment `HReTxEzxwn8MWMvCSDuNvnj54NCX`.
